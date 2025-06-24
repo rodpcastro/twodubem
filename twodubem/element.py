@@ -14,7 +14,7 @@ StraightLinearElement
 
 import numpy as np
 from numpy import ndarray
-from _internal import ismall, tdb_warn
+from twodubem._internal import ismall, tdb_warn
 
 
 class Element:

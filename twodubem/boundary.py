@@ -12,8 +12,8 @@ PolygonalBoundary
 
 import numpy as np
 from numpy import ndarray
-from element import StraightConstantElement
-from _internal import ismall
+from twodubem.element import StraightConstantElement
+from twodubem._internal import ismall
 
 
 class Boundary:
