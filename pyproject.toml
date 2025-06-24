@@ -1,0 +1,90 @@
+# [build-system]
+
+[project]
+name = 'twodubem'
+version = '0.1.0'
+dependencies = ['numpy>=2.0']
+authors = [
+    {name = 'Rodrigo Castro', email = 'rodpcastro18@gmail.com'}
+]
+maintainers = [
+    {name = 'Rodrigo Castro', email = 'rodpcastro18@gmail.com'}
+]
+description = "TwoDuBEM solves the 2D Laplace's equation using the Boundary Element Method."
+readme = 'README.md'
+requires-python = '>=3.9'
+license = {file = 'LICENSE'}
+keywords = ['Potential', 'Laplace', 'Boundary Element Method']
+classifiers = [
+  'Development Status :: 1 - Planning',
+  'License :: OSI Approved :: MIT License',
+  'Intended Audience :: Education',
+  'Intended Audience :: Science/Research',
+  'Topic :: Scientific/Engineering',
+  'Programming Language :: Python',
+  'Programming Language :: Python :: 3',
+  'Programming Language :: Python :: 3.9',
+  'Programming Language :: Python :: 3.10',
+  'Programming Language :: Python :: 3.11',
+  'Programming Language :: Python :: 3.12',
+  'Programming Language :: Python :: 3.13',
+  'Programming Language :: Python :: 3 :: Only',
+  'Typing :: Typed',
+  'Operating System :: OS Independent',
+]
+
+# [project.urls]
+# 'Source' = 'https://github.com/rodpcastro/twodubem'
+# 'Documentation' = 'https://twodubem.readthedocs.io/'
+
+# [project.optional-dependencies]
+# tests = [
+#     'mypy>=1.0',
+#     'pytest>=6.2',
+#     'nbval>=0.11',
+#     'coverage>=7.0',
+#     'pytest-cov>=2.10',
+# ]
+# docs = [
+#     'sphinx>=7.2.6',
+#     'furo>=2024.1.29',
+#     'nbsphinx>=0.9.3',
+#     'numpydoc>=1.6.0',
+#     'IPython>=8.8.0',
+#     'sphinx-copybutton',
+# ]
+# format = ['black>=22.1.0']
+
+# [tool.mypy]
+# python_version = '3.12'
+# files = 'twodubem'
+# exclude = ['tests']
+# ignore_missing_imports = 'True'
+
+# [tool.pytest.ini_options]
+# minversion = '6.2'
+# testpaths = ['tests', 'docs/tutorials']
+# addopts = [
+#     '--nbval',
+#     '--cov=nodimo',
+#     '--cov-config=pyproject.toml',
+#     '--cov-report=term-missing',
+#     '--import-mode=importlib',
+# ]
+
+# [tool.coverage.run]
+# source = ['nodimo']
+# data_file = '.coverage/.coverage'
+# context = '${CONTEXT}'
+# relative_files = 'true'
+#
+# [tool.coverage.paths]
+# source = ['nodimo']
+#
+# [tool.coverage.html]
+# directory = '.coverage/htmlcov'
+
+# [tool.black]
+# target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
+# skip-string-normalization = 'True'
+# include = 'nodimo\/.*\.pyi?$'
