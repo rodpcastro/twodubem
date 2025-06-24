@@ -33,8 +33,8 @@ classifiers = [
   'Operating System :: OS Independent',
 ]
 
-# [project.urls]
-# 'Source' = 'https://github.com/rodpcastro/twodubem'
+[project.urls]
+'Source' = 'https://github.com/rodpcastro/twodubem'
 # 'Documentation' = 'https://twodubem.readthedocs.io/'
 
 # [project.optional-dependencies]
