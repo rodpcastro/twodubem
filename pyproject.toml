@@ -5,9 +5,6 @@ dependencies = ['numpy>=2.0']
 authors = [
     {name = 'Rodrigo Castro', email = 'rodpcastro18@gmail.com'}
 ]
-maintainers = [
-    {name = 'Rodrigo Castro', email = 'rodpcastro18@gmail.com'}
-]
 description = "TwoDuBEM solves the 2D Laplace's equation using the Boundary Element Method."
 readme = 'README.md'
 requires-python = '>=3.9'
@@ -43,9 +40,9 @@ build-backend = "poetry.core.masonry.api"
 # tests = [
 #     'mypy>=1.0',
 #     'pytest>=6.2',
-#     'nbval>=0.11',
 #     'coverage>=7.0',
 #     'pytest-cov>=2.10',
+#     'black>=22.1.0',
 # ]
 # docs = [
 #     'sphinx>=7.2.6',
@@ -55,7 +52,6 @@ build-backend = "poetry.core.masonry.api"
 #     'IPython>=8.8.0',
 #     'sphinx-copybutton',
 # ]
-# format = ['black>=22.1.0']
 
 # [tool.mypy]
 # python_version = '3.12'
