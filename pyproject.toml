@@ -1,5 +1,3 @@
-# [build-system]
-
 [project]
 name = 'twodubem'
 version = '0.1.0'
@@ -32,6 +30,10 @@ classifiers = [
   'Typing :: Typed',
   'Operating System :: OS Independent',
 ]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [project.urls]
 'Source' = 'https://github.com/rodpcastro/twodubem'
