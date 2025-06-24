@@ -1,3 +1,8 @@
+#    ┏┓┳┓  ┳┓┏┓┳┳┓    Licensed under the MIT License
+#    ┏┛┃┃┓┏┣┫┣ ┃┃┃    Copyright (c) 2025 Rodrigo Castro
+#    ┗━┻┛┗┻┻┛┗┛┛ ┗    https://github.com/rodpcastro/twodubem
+#                     ASCII Art (Font Tmplr) by https://patorjk.com
+
 """
 TwoDuBEM
 ========
