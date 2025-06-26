@@ -26,7 +26,11 @@ class Element:
     pass
 
 
-class StraightConstantElement(Element):
+class StraightElement(Element):
+    # TODO: Implement.
+
+
+class StraightConstantElement(StraightElement):
     """Straight constant boundary element.
 
     Parameters
@@ -219,6 +223,6 @@ class StraightConstantElement(Element):
         return G, Q, gradG, gradQ
 
 
-class StraightLinearElement(StraightConstantElement):
+class StraightLinearElement(StraightElement):
     # TODO: Implement.
     pass

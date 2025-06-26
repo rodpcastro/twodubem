@@ -3,20 +3,20 @@
 #    ┗━┻┛┗┻┻┛┗┛┛ ┗    https://github.com/rodpcastro/twodubem
 
 """
-Potential
-=========
+Solver
+======
 
 This module contains the classes to solve Laplace's equation in two dimensions.
 
 Classes
 -------
-BEMPotential
+Solver
     Solution of 2D Laplace's equation using the Boundary Element Method.
 """
 
 import numpy as np
 
-class BEMPotential:
+class Solver:
     # TODO: Edit get_solution to also obtain solution for boundary points.
 
     """Solution of 2D Laplace's equation using the Boundary Element Method.

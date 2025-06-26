@@ -15,16 +15,16 @@ Element
     This module contains classes to create boundary elements.
 Boundary
     This module contains the classes to create boundaries.
-Potential
+Solver
     This module contains the classes to solve Laplace's equation in two dimensions.
 """
 
 from twodubem.element import StraightConstantElement
 from twodubem.boundary import PolygonalBoundary
-from twodubem.potential import BEMPotential
+from twodubem.solver import Solver
 
 __all__ = [
     'StraightConstantElement',
     'PolygonalBoundary',
-    'BEMPotential',
+    'Solver',
 ]
