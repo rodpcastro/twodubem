@@ -98,10 +98,17 @@ class Polygon:
         # Ray-casting algorithm.
         number_of_horizontal_intersections = 0
         for element in self.elements:
-            points_relative = element.points - point
-            if np.any(points_relative[:, 0] >= 0):
-                if points_relative[:, 1].prod() < 0:
-                    number_of_horizontal_intersections += 1
+            endpoints_relative = element.endpoints - point
+            if np.any(endpoints_relative[:, 0] >= 0):
+                if endpoints_relative[:, 1].prod() < 0:
+                    if np.all(endpoints_relative[:, 0] >= 0):
+                        number_of_horizontal_intersections += 1
+                    else:
+                        x1, y1 = element.endpoints[0]
+                        x2, y2 = element.endpoints[1]
+                        x_intersection = x1 + (x2 - x1) / (y2 - y1) * (point[1] - y1)
+                        if point[0] < x_intersection:
+                            number_of_horizontal_intersections += 1
 
         if number_of_horizontal_intersections % 2 == 0:
             return False
@@ -188,6 +195,23 @@ class Rectangle(Polygon):
 
     Parameters
     ----------
+    bottom_left_corner : ndarray[float], shape=(2,)
+        Array containing the global coordinates of the rectangle bottom left corner.
+    width : float
+        Width of the rectangle.
+    height : float
+        Height of the rectangle.
+    number_of_width_elements : int
+        Number of elements on bottom and top sides of the rectangle.
+    number_of_height_elements : int
+        Number of elements on left and right sides of the rectangle.
+    boundary_condition : callable
+        A function that describes the boundary condition. The function must receive as
+		inputs an integer from 0 to 3, representing the side of the rectangle
+		(bottom = 0, right = 1, top = 2, left = 3), and an array representing the point
+		where the boundary condition is evaluated. This functions must return the
+		boundary condition type, ``0`` for Dirichlet and ``1`` for Neumann, and the
+		boundary condition value.
     """
 
     def __init__(
@@ -272,7 +296,24 @@ class Rectangle(Polygon):
 
 
 class Square(Rectangle):
-    """Square boundary."""
+    """Square boundary.
+
+    Parameters
+    ----------
+    bottom_left_corner : ndarray[float], shape=(2,)
+        Array containing the global coordinates of the square bottom left corner.
+    side_length : float
+        Side length of the square.
+    number_of_side_elements : int
+        Number of elements on each side of the square.
+    boundary_condition : callable
+        A function that describes the boundary condition. The function must receive as
+		inputs an integer from 0 to 3, representing the side of the rectangle
+		(bottom = 0, right = 1, top = 2, left = 3), and an array representing the point
+		where the boundary condition is evaluated. This functions must return the
+		boundary condition type, ``0`` for Dirichlet and ``1`` for Neumann, and the
+		boundary condition value.
+    """
 
     def __init__(
         self,
