@@ -28,6 +28,7 @@ class Element:
 
 class StraightElement(Element):
     # TODO: Implement.
+    pass
 
 
 class StraightConstantElement(StraightElement):

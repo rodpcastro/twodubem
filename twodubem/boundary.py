@@ -33,20 +33,26 @@ class Polygon:
     Parameters
     ----------
     file_name : str
-        Input file name. Check child classes documentation for instructions on the file's content structure.
+        Input file name. In this file, each continuous boundary must be topped by a
+		``#boundary`` statement. The first is always the external boundary, while the
+		others are internal boundaries (holes). Every boundary is represented by data
+		in 4 columns. The first two columns are coordinates x and y of a vertex. The
+		third column is a integer value (0 or 1) indicating the boundary condition
+		type at a boundary node. The fourth column defines the boundary condition value
+		at a boundary node.
 
     Attributes
     ----------
     number_of_elements : int
         Number of elements.
-    vertices : ndarray[float], shape=(n, 2)
+    vertices : ndarray[float], shape=(n+1, 2)
         Vertices of the polygon.
     elements : list[StraightElement]
         List of elements.
-    bc_types : ndarray[int]
+    bc_types : ndarray[int], shape=(n,)
         Boundary condition types on boundary nodes. Value ``0`` represents Dirichlet boundary
         condition and value ``1`` represents Neumann boundary condition.
-    bc_values : ndarray[float]
+    bc_values : ndarray[float], shape=(n,)
         Boundary condition values on boundary nodes.
 
     Methods
@@ -75,7 +81,7 @@ class Polygon:
                     self.vertices[i+1],
                 )
             )
-
+    
     def is_on_boundary(self, point):
         """Determine if ``point`` is on the boundary."""
 
@@ -136,13 +142,22 @@ class Polygon:
         self.vertices = np.array(vertices, dtype=np.float64)
         self.bc_types = np.array(bc_types, dtype=np.int8)
         self.bc_values = np.array(bc_values, dtype=np.float64)
-    
+
     def show(self):
         """Display a graphical representation of the boundary."""
 
         import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon
+        
+        fig, ax = plt.subplots()
 
-        plt.plot(
+        external_boundary = Polygon(self.vertices, color='silver')
+        # internal_boundary = Polygon(self.vertices, color='white')
+        
+        ax.add_patch(external_boundary)
+        # ax.add_patch(internal_boundary)
+        ax.set_aspect('equal')
+        ax.plot(
             self.vertices[:, 0],
             self.vertices[:, 1],
             'r-',
@@ -152,21 +167,27 @@ class Polygon:
             markeredgecolor='k',
             linewidth=2,
         )
-        plt.gca().set_aspect('equal')
         plt.show()
 
+    def _copy(self):
+        from copy import deepcopy
+        return deepcopy(self)
 
-class SimplyConnectedPolygon(Polygon):
-    """Simply connected polygonal boundary."""
+    def __neg__(self):
+        negative_polygon = self._copy()
+        negative_polygon.vertices = self.vertices[::-1]
+        negative_polygon.bc_types = self.bc_types[::-1]
+        negative_polygon.bc_values = self.bc_values[::-1]
+        negative_polygon._set_elements()
+        
+        return negative_polygon
 
-    def __init__(self, file_name):
-        super().__init__(file_name)
 
-
-class Rectangle(SimplyConnectedPolygon):
+class Rectangle(Polygon):
     """Rectangular boundary.
 
     Parameters
+    ----------
     """
 
     def __init__(
@@ -176,8 +197,10 @@ class Rectangle(SimplyConnectedPolygon):
         height,
         number_of_width_elements,
         number_of_height_elements,
+        boundary_condition,
     ):
-        self.number_of_elements = 2 * (number_of_width_elements + number_of_height_elements)
+        self.number_of_elements = 2 * (number_of_width_elements 
+                                       + number_of_height_elements)
         self._set_vertices(
             bottom_left_corner,
             width,
@@ -185,32 +208,42 @@ class Rectangle(SimplyConnectedPolygon):
             number_of_width_elements,
             number_of_height_elements,
         )
+        self._set_elements()
+        self._set_boundary_conditions(
+            number_of_width_elements,
+            number_of_height_elements,
+            boundary_condition,
+        )
 
     def _set_vertices(self, p0, w, h, nx, ny):
         self.vertices = np.empty((self.number_of_elements + 1, 2), dtype=np.float64)
-        for side in range(1, 5):
-            if side == 1:
+        for side in range(4):
+            if side == 0:
+                # Bottom side.
                 x0 = p0[0]
                 x1 = p0[0] + w
                 i0 = 0
                 i1 = nx
                 self.vertices[i0:i1, 0] = np.linspace(x0, x1, nx, endpoint=False)
                 self.vertices[i0:i1, 1] = p0[1]
-            elif side == 2:
+            elif side == 1:
+                # Right side.
                 y0 = p0[1]
                 y1 = p0[1] + h
                 i0 = nx
                 i1 = nx + ny
                 self.vertices[i0:i1, 0] = p0[0] + w
                 self.vertices[i0:i1, 1] = np.linspace(y0, y1, ny, endpoint=False)
-            elif side == 3:
+            elif side == 2:
+                # Top side.
                 x0 = p0[0] + w
                 x1 = p0[0]
                 i0 = nx + ny
                 i1 = nx + ny + nx
                 self.vertices[i0:i1, 0] = np.linspace(x0, x1, nx, endpoint=False)
                 self.vertices[i0:i1, 1] = p0[1] + h
-            elif side == 4:
+            elif side == 3:
+                # Left side.
                 y0 = p0[1] + h
                 y1 = p0[1]
                 i0 = nx + ny + nx
@@ -220,9 +253,39 @@ class Rectangle(SimplyConnectedPolygon):
 
         self.vertices[-1] = self.vertices[0]
 
+    def _set_boundary_conditions(self, nx, ny, boundary_condition):
+        self.bc_types = np.empty(self.number_of_elements, dtype=np.int8)
+        self.bc_values = np.empty(self.number_of_elements, dtype=np.float64)
+        for i, element in enumerate(self.elements):
+            if 0 <= i < nx:
+                side = 0
+            elif nx <= i < nx + ny:
+                side = 1
+            elif nx + ny <= i < nx + ny + nx:
+                side = 2
+            elif nx + ny + nx <= i < nx + ny + nx + ny:
+                side = 3
+
+            bc_type, bc_value = boundary_condition(side, element.node)
+            self.bc_types[i] = bc_type
+            self.bc_values[i] = bc_value
+
 
 class Square(Rectangle):
     """Square boundary."""
 
-    def __init__(self, bottom_left_corner, side_length, number_of_side_elements):
-        super().__init__(bottom_left_corner, side_length, side_length, number_of_side_elements, number_of_side_elements)
+    def __init__(
+        self,
+        bottom_left_corner,
+        side_length,
+        number_of_side_elements,
+        boundary_condition,
+    ):
+        super().__init__(
+            bottom_left_corner,
+            side_length,
+            side_length,
+            number_of_side_elements,
+            number_of_side_elements,
+            boundary_condition,
+        )

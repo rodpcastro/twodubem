@@ -20,11 +20,13 @@ Solver
 """
 
 from twodubem.element import StraightConstantElement
-from twodubem.boundary import PolygonalBoundary
+from twodubem.boundary import Polygon, Rectangle, Square
 from twodubem.solver import Solver
 
 __all__ = [
     'StraightConstantElement',
-    'PolygonalBoundary',
+    'Polygon',
+    'Rectangle',
+    'Square',
     'Solver',
 ]
