@@ -23,7 +23,7 @@ from numpy import ndarray
 from twodubem._internal import ismall, tdb_warn
 
 
-class StraightElement(Element):
+class StraightElement:
     # TODO: Implement.
     pass
 

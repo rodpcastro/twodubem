@@ -19,12 +19,10 @@ Solver
     This module contains the classes to solve Laplace's equation in two dimensions.
 """
 
-from twodubem.element import StraightConstantElement
 from twodubem.boundary import Polygon, Rectangle, Square
 from twodubem.solver import Solver
 
 __all__ = [
-    'StraightConstantElement',
     'Polygon',
     'Rectangle',
     'Square',
