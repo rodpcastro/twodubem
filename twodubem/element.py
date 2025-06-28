@@ -10,6 +10,8 @@ This module contains classes to create boundary elements.
 
 Classes
 -------
+StraightElement
+    Straight boundary element.
 StraightConstantElement
     Straight constant boundary element.
 StraightLinearElement
@@ -19,11 +21,6 @@ StraightLinearElement
 import numpy as np
 from numpy import ndarray
 from twodubem._internal import ismall, tdb_warn
-
-
-class Element:
-    # TODO: Implement parent class. This one will also be used for type annotations.
-    pass
 
 
 class StraightElement(Element):
