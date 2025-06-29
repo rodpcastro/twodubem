@@ -25,6 +25,7 @@ from twodubem._internal import ismall
 
 
 class Polygon:
+    # TODO: Update docstrings to explain that the normal vector should point outward the domain.
     """Polygonal boundaries.
     
     See examples section for instructions on how to structure the input file.

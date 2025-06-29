@@ -70,12 +70,12 @@ class StraightConstantElement(StraightElement):
         self.tangent = r / self.length
         self.normal = np.array([self.tangent[1], -self.tangent[0]])
         
-    def get_point_local_coordinates(self, point):
+    def get_point_local_coordinates(self, point_global):
         """Get point's coordinates in the local system.
 
         Parameters
         ----------
-        point : ndarray, shape=(2,)
+        point_global : ndarray, shape=(2,)
             Point's coordinates in the global system.
 
         Returns
@@ -84,12 +84,34 @@ class StraightConstantElement(StraightElement):
             Point's coordinates in the local system.
         """
 
-        dif = np.array(point) - self.node
-        x = np.dot(dif, self.tangent)
-        y = np.dot(dif, self.normal)
+        point_relative = np.array(point_global) - self.node
+        x = np.dot(point_relative, self.tangent)
+        y = np.dot(point_relative, self.normal)
         point_local = np.array([x, y])
 
         return point_local
+
+    def get_point_global_coordinates(self, point_local):
+        """Get point's coordinates in the global system.
+
+        Parameters
+        ----------
+        point_local : ndarray, shape=(2,)
+            Point's coordinates in the local system.
+
+        Returns
+        -------
+        point_global : ndarray, shape=(2,)
+            Point's coordinates in the global system.
+        """
+
+        point_global = (
+            self.node
+            + point_local[0] * self.tangent
+            + point_local[1] * self.normal
+        )
+
+        return point_global
 
     def get_point_distance(self, point):
         """Get point's distance from the element.

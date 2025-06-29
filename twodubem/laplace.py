@@ -20,19 +20,49 @@ from twodubem._internal import ismall
 
 
 class Laplace(Green):
-    """Green's function of 2D Laplace's equation."""
+    """Green's function for 2D Laplace's equation."""
+
+    @staticmethod
+    def eval(field_point, source_point):
+        """Green's function evaluation."""
+
+        fx, fy = field_point
+        sx, sy = source_point
+
+        ip = 1.0 / np.pi
+        hp = 0.5 * ip
+        dx = fx - sx
+        dy = fy - sy
+        dx2 = dx**2
+        dy2 = dy**2
+        ds = dx2 + dy2
+        dq = ds**2
+
+        g = 0.5 * hp * np.log(ds)
+        gx = hp * dx / ds
+        gy = hp * dy / ds
+        gxx = -hp * (dx2 - dy2) / dq
+        gxy = -ip * dx * dy / dq
+        gyy = -gxx
+        gyx = gxy
+
+        gradg = np.array([gx, gy])
+        gradk = np.array([[gxx, gyx],
+                          [gxy, gyy]])
+
+        return g, gradg, gradk
 
     def get_constant_element_influence_coefficients(
-        self, element, point, return_gradients=False
+        self, field_element, source_element, return_gradients=False
     ):
-        """Get influence coefficients of a constant element at a field point.
+        """Get influence coefficients for a constant element.
 
         Parameters
         ----------
-        element : StraightConstantElement
-            Straight constant boundary element.
-        point : ndarray, shape=(2,)
-            Field point's coordinates in global system.
+        field_element : StraightConstantElement
+            Field element, where the integration is carried over.
+        source_element : StraightConstantElement
+            Source element, where the source is located.
         return_gradients : bool, default=False
             If ``True``, The gradients of G and Q in the global coordinate system are
             computed and returned.
@@ -58,9 +88,10 @@ class Laplace(Green):
             close or inside the element.
         """
 
-        x, y = element.get_point_local_coordinates(point)
+        source_point = source_element.node
+        x, y = field_element.get_point_local_coordinates(source_point)
 
-        elength = element.length
+        elength = field_element.length
         a = 0.5 * elength
 
         # Element interior (|x| < a, y = 0).
@@ -71,7 +102,7 @@ class Laplace(Green):
        
         # Q is discontinuous for (|x| ≤ a, y = 0). Returns Q = 0.0 in this region.
         if is_element_edge:
-            G = a / np.pi * (np.log(2*a) - 1.0)
+            G = a / np.pi * (np.log(2.0 * a) - 1.0)
             Q = 0.0
         else:
             hp = 0.5 / np.pi
