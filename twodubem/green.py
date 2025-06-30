@@ -14,6 +14,8 @@ Green
     Base class for all Green's functions.
 """
 
+import numpy as np
+
 
 class Green:
 
@@ -23,8 +25,26 @@ class Green:
 
         raise NotImplementedError
 
-    def get_line_element_constant_influence_coefficients(
-        self, field_element, source_element,
+    def get_line_element_influence_coefficients(
+        self, field_element, source_element, method='constant', *args, **kwargs,
+    ):
+        """Get influence coefficients on a line element."""
+
+        method_ = method.strip().lower()
+
+        if method_ == 'constant':
+            return self._get_line_element_constant_influence_coefficients(
+                field_element, source_element, *args, **kwargs,
+            )
+        elif method_ == 'linear':
+            return self._get_line_element_linear_influence_coefficients(
+                field_element, source_element, *args, **kwargs,
+            )
+        else:
+            raise ValueError(f"Invalid solution approximation method '{method}'")
+
+    def _get_line_element_constant_influence_coefficients(
+        self, field_element, source_element, *args, **kwargs,
     ):
         """Get constant influence coefficients on a line element."""
 
@@ -60,8 +80,8 @@ class Green:
 
         return G, Q, gradG, gradQ
 
-    def get_line_element_linear_influence_coefficients(
-        self, field_element, source_element,
+    def _get_line_element_linear_influence_coefficients(
+        self, field_element, source_element, *args, **kwargs,
     ):
         """Get linear influence coefficients on a line element."""
 

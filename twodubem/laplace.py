@@ -57,7 +57,7 @@ class Laplace(Green):
 
         return g, gradg, gradk
 
-    def get_line_element_constant_influence_coefficients(
+    def _get_line_element_constant_influence_coefficients(
         self, field_element, source_element, show_warnings=True,
     ):
         """Get constant influence coefficients on a line element.
@@ -66,7 +66,7 @@ class Laplace(Green):
         ----------
         field_element : LineElement
             Field element, where the integration is carried over.
-        source_element : StraightElement
+        source_element : LineElement
             Source element, where the source is located.
         show_warnings : bool, default=True
             Show warning messages.
