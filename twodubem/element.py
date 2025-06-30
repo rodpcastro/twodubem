@@ -20,28 +20,29 @@ StraightLinearElement
 
 import numpy as np
 from numpy import ndarray
-from twodubem._internal import ismall, tdb_warn
+from twodubem._internal import ismall
 
 
-class StraightElement:
-    # TODO: Implement.
+class Element:
+    """Boundary element base class."""
+
     pass
 
 
-class StraightConstantElement(StraightElement):
-    """Straight constant boundary element.
+class StraightElement(Element):
+    """Straight boundary element.
 
     Parameters
     ----------
-    point1 : ndarray[float], shape=(2,)
-        First end point global coordinates.
-    point2 : ndarray[float], shape=(2,)
-        Second end point global coordinates.
+    endpoint1 : ndarray[float], shape=(2,)
+        First endpoint global coordinates.
+    endpoint2 : ndarray[float], shape=(2,)
+        Second endpoint global coordinates.
         
     Attributes
     ----------
     endpoints : ndarray[float], shape=(2,2)
-        Element end points' global coordinates.
+        Element endpoints' global coordinates.
     node : ndarray[float], shape=(2,)
         Midpoint between endpoints.
     length : float
@@ -53,23 +54,25 @@ class StraightConstantElement(StraightElement):
 
     Methods
     -------
-    get_point_local_coordinates(point)
+    get_point_local_coordinates(point_global)
         Get point's coordinates in local system.
-    get_point_distance(point)
+    get_point_global_coordinates(point_local)
+        Get point's coordinates in the global system.
+    get_point_distance(point_global)
         Get point's distance from the element.
-    get_influence_coefficients(point, return_gradients=False)
-        Get influence coefficients at a point.
     """
 
-    def __init__(self, point1, point2):
-        self.endpoints = np.array([point1, point2])
-        self.node = self.endpoints.mean(axis=0)
+    def __init__(self, endpoint1, endpoint2):
+        self.endpoints = np.array([endpoint1, endpoint2])
+        self._set_element_properties()
 
+    def _set_element_properties(self):
         r = self.endpoints[1] - self.endpoints[0]
+        self.node = self.endpoints.mean(axis=0)
         self.length = np.linalg.norm(r)
         self.tangent = r / self.length
         self.normal = np.array([self.tangent[1], -self.tangent[0]])
-        
+    
     def get_point_local_coordinates(self, point_global):
         """Get point's coordinates in the local system.
 
@@ -113,12 +116,12 @@ class StraightConstantElement(StraightElement):
 
         return point_global
 
-    def get_point_distance(self, point):
+    def get_point_distance(self, point_global):
         """Get point's distance from the element.
         
         Parameters
         ----------
-        point : ndarray, shape=(2,)
+        point_global : ndarray, shape=(2,)
             Point coordinates in the global system.
 
         Returns
@@ -128,121 +131,14 @@ class StraightConstantElement(StraightElement):
         """
 
         a = 0.5 * self.length
-        x, y = self.get_point_local_coordinates(point)
+        x, y = self.get_point_local_coordinates(point_global)
 
         if np.abs(x) <= a:
             distance = np.abs(y)
         else:
-            dif_from_endpoints = point - self.endpoints
-            distance_from_endpoints = np.linalg.norm(dif_from_endpoints, axis=1)
+            relative_to_endpoints = point_global - self.endpoints
+            distance_from_endpoints = np.linalg.norm(relative_to_endpoints, axis=1)
             distance = distance_from_endpoints.min()
 
         return distance
-    
-    def get_influence_coefficients(self, field_global, return_gradients=False):
-        """Get influence coefficients at a field point.
 
-        Parameters
-        ----------
-        field_global : ndarray, shape=(2,)
-            Field point's coordinates in global system.
-        return_gradients : bool, default=False
-            If ``True``, The gradients of G and Q in the global coordinate system are
-            computed and returned.
-
-        Returns
-        -------
-        G : float
-            Integral of the Green's function over the element.
-        Q : float
-            Integral of the Green's function normal derivative over the element.
-        gradG : ndarray[float], shape=(2,)
-            Gradient of G in the global coordinate system.
-        gradQ : ndarray[float], shape=(2,)
-            Gradient of Q in the global coordinate system.
-
-        Warns
-        -----
-        TDBWarning
-            Singular behavior for the gradients of G and Q at a point too close or 
-            coincident with the element's edges.
-        TDBWarning
-            Inaccuracy at the computation of the gradients of G and Q at a point too
-            close or inside the element.
-        """
-
-        x, y = self.get_point_local_coordinates(field_global)
-
-        a = 0.5 * self.length
-
-        # Element interior (|x| < a, y = 0).
-        is_element_interior = ismall(y, self.length) and np.abs(x) < a
-
-        # Element's edges (|x| = a, y = 0).
-        is_element_edge = ismall(y, self.length) and ismall(np.abs(x) - a, self.length)
-       
-        # Q is discontinuous for (|x| ≤ a, y = 0). Returns Q = 0.0 in this region.
-        if is_element_edge:
-            G = a / np.pi * (np.log(2*a) - 1.0)
-            Q = 0.0
-        else:
-            hp = 0.5 / np.pi
-            
-            xpa = x + a
-            xma = x - a
-
-            r1 = np.sqrt(xma**2 + y**2)
-            r2 = np.sqrt(xpa**2 + y**2)
-            t1 = np.arctan2(y, xma)
-            t2 = np.arctan2(y, xpa)
-
-            if is_element_interior:
-                # FIXME: Not sure if this is necessary.
-                t1m2 = -np.pi
-            else:
-                t1m2 = t1 - t2
-
-            G = hp * (y * t1m2 - xma * np.log(r1) + xpa * np.log(r2) - 2.0 * a)
-
-            if ismall(y, self.length):
-                Q = 0.0
-            else:
-                Q = -hp * t1m2
-            
-        if not return_gradients:
-            return G, Q
-        
-        if is_element_edge:
-            gradG = np.array([np.nan, np.nan], dtype=np.float64)
-            gradQ = np.array([np.nan, np.nan], dtype=np.float64)
-            tdb_warn("Gradients of G and Q are singular for a point too close or "
-                     "coincident with the element's edges. Returning NaN instead.")
-        else:
-            if is_element_interior:
-                tdb_warn("Gradients of G and Q are inaccurate for "
-                         "a point too close or inside the element.")
-
-            cosb = self.tangent[0]
-            sinb = self.tangent[1]
-
-            Gx1 = np.log(r1 / r2)
-            Gx2 = t1m2
-            
-            Gx = -hp * (Gx1 * cosb - Gx2 * sinb)
-            Gy = -hp * (Gx1 * sinb + Gx2 * cosb)
-
-            Qx1 = y / r1**2 - y / r2**2
-            Qx2 = xma / r1**2 - xpa / r2**2
-            
-            Qx = hp * (Qx1 * cosb - Qx2 * sinb)
-            Qy = hp * (Qx1 * sinb + Qx2 * cosb)
-
-            gradG = np.array([Gx, Gy], dtype=np.float64)
-            gradQ = np.array([Qx, Qy], dtype=np.float64)
-
-        return G, Q, gradG, gradQ
-
-
-class StraightLinearElement(StraightElement):
-    # TODO: Implement.
-    pass
