@@ -23,7 +23,7 @@ class Green:
         raise NotImplementedError
 
     def get_constant_element_influence_coefficients(
-        self, field_element, source_element, return_gradients=False
+        self, field_element, source_element,
     ):
         """Get influence coefficients for a constant element."""
 
@@ -60,7 +60,7 @@ class Green:
         return G, Q, gradG, gradQ
 
     def get_linear_element_influence_coefficients(
-        self, field_element, source_element, return_gradients=False
+        self, field_element, source_element,
     ):
         """Get influence coefficients for a linear element."""
         raise NotImplementedError

@@ -16,7 +16,7 @@ Laplace
 
 import numpy as np
 from twodubem.green import Green
-from twodubem._internal import ismall
+from twodubem._internal import ismall, tdb_warn
 
 
 class Laplace(Green):
@@ -37,23 +37,28 @@ class Laplace(Green):
         dy2 = dy**2
         ds = dx2 + dy2
         dq = ds**2
-
+        
+        # Green's function.
         g = 0.5 * hp * np.log(ds)
+
+        # Green's function gradient.
         gx = hp * dx / ds
         gy = hp * dy / ds
+        gradg = np.array([gx, gy])
+
+        # Green's function gradient's gradient. 
         gxx = -hp * (dx2 - dy2) / dq
         gxy = -ip * dx * dy / dq
         gyy = -gxx
         gyx = gxy
 
-        gradg = np.array([gx, gy])
         gradk = np.array([[gxx, gyx],
                           [gxy, gyy]])
 
         return g, gradg, gradk
 
     def get_constant_element_influence_coefficients(
-        self, field_element, source_element, return_gradients=False
+        self, field_element, source_element, show_warnings=True,
     ):
         """Get influence coefficients for a constant element.
 
@@ -63,9 +68,8 @@ class Laplace(Green):
             Field element, where the integration is carried over.
         source_element : StraightConstantElement
             Source element, where the source is located.
-        return_gradients : bool, default=False
-            If ``True``, The gradients of G and Q in the global coordinate system are
-            computed and returned.
+        show_warnings : bool, default=True
+            Show warning messages.
 
         Returns
         -------
@@ -81,11 +85,8 @@ class Laplace(Green):
         Warns
         -----
         TDBWarning
-            Singular behavior for the gradients of G and Q at a point too close or 
-            coincident with the element's edges.
-        TDBWarning
-            Inaccuracy at the computation of the gradients of G and Q at a point too
-            close or inside the element.
+            Inaccurate or singular behavior for the influence coefficients gradients 
+            when the source point is too close or inside the field element.
         """
 
         source_point = source_element.node
@@ -94,15 +95,21 @@ class Laplace(Green):
         elength = field_element.length
         a = 0.5 * elength
 
-        # Element interior (|x| < a, y = 0).
-        is_element_interior = ismall(y, elength) and np.abs(x) < a
+        # Source point on field element (|x| ≤ a, |y| = 0).
+        is_source_on_element = ismall(y, elength) and np.abs(x) <= a
 
-        # Element's edges (|x| = a, y = 0).
-        is_element_edge = ismall(y, elength) and ismall(np.abs(x) - a, elength)
+        # Source point on field element's endpoints (|x| = a, |y| = 0).
+        is_source_on_endpoint = ismall(y, elength) and ismall(np.abs(x) - a, elength)
        
+        # Source point on field element's node (|x| = 0, |y| = 0).
+        is_source_on_node = ismall(x, elength) and ismall(y, elength)
+
         # Q is discontinuous for (|x| ≤ a, y = 0). Returns Q = 0.0 in this region.
-        if is_element_edge:
+        if is_source_on_endpoint:
             G = a / np.pi * (np.log(2.0 * a) - 1.0)
+            Q = 0.0
+        elif is_source_on_node:
+            G = a / np.pi * (np.log(a) - 1.0)
             Q = 0.0
         else:
             hp = 0.5 / np.pi
@@ -114,12 +121,7 @@ class Laplace(Green):
             r2 = np.sqrt(xpa**2 + y**2)
             t1 = np.arctan2(y, xma)
             t2 = np.arctan2(y, xpa)
-
-            if is_element_interior:
-                # Not sure if this is necessary. Only used for the gradients.
-                t1m2 = -np.pi
-            else:
-                t1m2 = t1 - t2
+            t1m2 = t1 - t2
 
             G = hp * (y * t1m2 - xma * np.log(r1) + xpa * np.log(r2) - 2.0 * a)
 
@@ -127,37 +129,24 @@ class Laplace(Green):
                 Q = 0.0
             else:
                 Q = -hp * t1m2
-            
-        if not return_gradients:
-            return G, Q
-        
-        if is_element_edge:
+
+        if is_source_on_element:
             gradG = np.array([np.nan, np.nan], dtype=np.float64)
             gradQ = np.array([np.nan, np.nan], dtype=np.float64)
-            tdb_warn("Gradients of G and Q are singular for a point too close or "
-                     "coincident with the element's edges. Returning NaN instead.")
+            if show_warnings:
+                tdb_warn("Influence coefficients gradients are inaccurate "
+                         "or singular for a source point too close or inside "
+                         "the field element. Returning NaN instead.")
         else:
-            if is_element_interior:
-                tdb_warn("Gradients of G and Q are inaccurate for "
-                         "a point too close or inside the element.")
+            J = -np.vstack((field_element.tangent, field_element.normal)).T
 
-            cosb = self.tangent[0]
-            sinb = self.tangent[1]
+            Gx = -np.log(r1 / r2)
+            Gy = t1m2
+            gradG = hp * J @ np.array([Gx, Gy])
 
-            Gx1 = np.log(r1 / r2)
-            Gx2 = t1m2
+            Qx = -y / r1**2 + y / r2**2
+            Qy = xma / r1**2 - xpa / r2**2
+            gradQ = -hp * J @ np.array([Qx, Qy])
             
-            Gx = -hp * (Gx1 * cosb - Gx2 * sinb)
-            Gy = -hp * (Gx1 * sinb + Gx2 * cosb)
-
-            Qx1 = y / r1**2 - y / r2**2
-            Qx2 = xma / r1**2 - xpa / r2**2
-            
-            Qx = hp * (Qx1 * cosb - Qx2 * sinb)
-            Qy = hp * (Qx1 * sinb + Qx2 * cosb)
-
-            gradG = np.array([Gx, Gy], dtype=np.float64)
-            gradQ = np.array([Qx, Qy], dtype=np.float64)
-
         return G, Q, gradG, gradQ
 

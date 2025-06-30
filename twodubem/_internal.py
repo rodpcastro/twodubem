@@ -62,5 +62,5 @@ def tdb_warn(message: str):
 
     original_formatwarning = warnings.formatwarning
     warnings.formatwarning = tdb_formatwarning
-    warnings.warn(message, NodimoWarning)
+    warnings.warn(message, TDBWarning)
     warnings.formatwarning = original_formatwarning
