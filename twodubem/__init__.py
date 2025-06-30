@@ -16,7 +16,7 @@ Element
 Boundary
     This module contains the classes to create boundaries.
 Solver
-    This module contains the classes to solve Laplace's equation in two dimensions.
+    This module contains the classes to solve boundary value problems.
 """
 
 from twodubem.boundary import Polygon, Rectangle, Square

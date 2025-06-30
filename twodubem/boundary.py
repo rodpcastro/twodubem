@@ -11,7 +11,7 @@ This module contains the classes to create boundaries.
 Classes
 -------
 Polygon
-    Polygonal boundaries.
+    Polygonal boundary.
 Rectangle
     Rectangular boundary.
 Square
@@ -20,13 +20,13 @@ Square
 
 import numpy as np
 from numpy import ndarray
-from twodubem.element import StraightConstantElement
+from twodubem.element import LineElement
 from twodubem._internal import ismall
 
 
 class Polygon:
     # TODO: Update docstrings to explain that the normal vector should point outward the domain.
-    """Polygonal boundaries.
+    """Polygonal boundary.
     
     See examples section for instructions on how to structure the input file.
 
@@ -42,7 +42,7 @@ class Polygon:
     vertices : dict
         Vertices of the polygon. On each boundary, the last vertex is coincident with
         the first to form a closed boundary.
-    elements : list[StraightElement]
+    elements : list[LineElement]
         List of elements.
     bc_types : dict
         Boundary condition types on boundary nodes. Value ``0`` represents Dirichlet
@@ -97,7 +97,7 @@ class Polygon:
         for i, vertices in self.vertices.items():
             for j in range(len(vertices) - 1):
                 self.elements.append(
-                    StraightConstantElement(
+                    LineElement(
                         vertices[j],
                         vertices[j+1],
                     )

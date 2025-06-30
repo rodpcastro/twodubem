@@ -20,12 +20,13 @@ class Green:
     @staticmethod
     def eval(field, source):
         """Green's function evaluation."""
+
         raise NotImplementedError
 
-    def get_constant_element_influence_coefficients(
+    def get_line_element_constant_influence_coefficients(
         self, field_element, source_element,
     ):
-        """Get influence coefficients for a constant element."""
+        """Get constant influence coefficients on a line element."""
 
         source_point = source_element.node
         a = 0.5 * field_element.length
@@ -59,9 +60,10 @@ class Green:
 
         return G, Q, gradG, gradQ
 
-    def get_linear_element_influence_coefficients(
+    def get_line_element_linear_influence_coefficients(
         self, field_element, source_element,
     ):
-        """Get influence coefficients for a linear element."""
+        """Get linear influence coefficients on a line element."""
+
         raise NotImplementedError
 

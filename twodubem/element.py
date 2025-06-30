@@ -10,12 +10,10 @@ This module contains classes to create boundary elements.
 
 Classes
 -------
-StraightElement
-    Straight boundary element.
-StraightConstantElement
-    Straight constant boundary element.
-StraightLinearElement
-    Straight linear boundary element. (not implemented)
+Element
+    Base class for boundary elements.
+LineElement
+    Line segment boundary element.
 """
 
 import numpy as np
@@ -24,13 +22,13 @@ from twodubem._internal import ismall
 
 
 class Element:
-    """Boundary element base class."""
+    """Base class for boundary elements."""
 
     pass
 
 
-class StraightElement(Element):
-    """Straight boundary element.
+class LineElement(Element):
+    """Line segment boundary element.
 
     Parameters
     ----------

@@ -6,12 +6,12 @@
 Laplace
 =======
 
-This module contains the class for the Green's function of 2D Laplace's equation.
+This module contains the Green's function class for 2D Laplace's equation.
 
 Classes
 -------
 Laplace
-    Green's function of 2D Laplace's equation.
+    Green's function for 2D Laplace's equation.
 """
 
 import numpy as np
@@ -57,16 +57,16 @@ class Laplace(Green):
 
         return g, gradg, gradk
 
-    def get_constant_element_influence_coefficients(
+    def get_line_element_constant_influence_coefficients(
         self, field_element, source_element, show_warnings=True,
     ):
-        """Get influence coefficients for a constant element.
+        """Get constant influence coefficients on a line element.
 
         Parameters
         ----------
-        field_element : StraightConstantElement
+        field_element : LineElement
             Field element, where the integration is carried over.
-        source_element : StraightConstantElement
+        source_element : StraightElement
             Source element, where the source is located.
         show_warnings : bool, default=True
             Show warning messages.
