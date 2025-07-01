@@ -157,9 +157,9 @@ class LineElement(Element):
         distance = self.get_point_distance(point_global)
 
         if ismall(distance, self.length):
-            on_boundary = True
+            on_element = True
         else:
-            on_boundary = False
+            on_element = False
 
-        return on_boundary
+        return on_element
 
