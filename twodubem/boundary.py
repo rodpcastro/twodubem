@@ -26,6 +26,7 @@ from twodubem._internal import ismall
 
 class Polygon:
     # TODO: Update docstrings to explain that the normal vector should point outward the domain.
+    # TODO: If there's only one boundary, with domain on the outside, change background color to silver.
     """Polygonal boundary.
     
     See examples section for instructions on how to structure the input file.
@@ -54,8 +55,8 @@ class Polygon:
     -------
     is_on_boundary(point)
         Determine if ``point`` is on the boundary.
-    is_inside_region(point)
-        Determine if ``point`` is inside the region enclosed by the boundary.
+    is_on_domain_interior(point)
+        Determine if ``point`` is on the domain's interior.
     save(file_name)
         Save geometry and boundary condition data to file.
     show()
@@ -124,7 +125,7 @@ class Polygon:
         Parameters
         ----------
         point : ndarray[float], shape=(2,)
-            Point coordinates in global system.
+            Point coordinates in the global system.
 
         Returns
         -------
@@ -138,22 +139,31 @@ class Polygon:
         on_boundary = False
         element_index = None        
         for i, element in enumerate(self.elements):
-            distance = element.get_point_distance(point)
-            if ismall(distance, element.length):
+            if element.is_on_element(point):
                 on_boundary = True
                 element_index = i
                 break
 
         return on_boundary, element_index
 
-    def is_inside_region(self, point):
-        """Determine if ``point`` is inside the region enclosed by the boundary."""
+    def is_on_domain_interior(self, point):
+        """Determine if ``point`` is on the domain's interior."""
 
         # Ray-casting algorithm.
         number_of_horizontal_intersections = 0
         for element in self.elements:
             endpoints_relative = element.endpoints - point
             if np.any(endpoints_relative[:, 0] >= 0):
+                if ismall(endpoints_relative[:, 1].prod(), element.length):
+                    # If the point y-coordinate coincides with the polygon vertex.
+                    yr1 = endpoints_relative[0, 1]
+                    yr2 = endpoints_relative[1, 1]
+                    if ismall(yr1, element.length) and ismall(yr2, element.length):
+                        # Skip if point is colinear with element's endpoints.
+                        continue
+                    elif ismall(yr2, element.length):
+                        # Count for only one of the elements that share the vertex.
+                        number_of_horizontal_intersections += 1
                 if endpoints_relative[:, 1].prod() < 0:
                     if np.all(endpoints_relative[:, 0] >= 0):
                         number_of_horizontal_intersections += 1
@@ -346,6 +356,7 @@ class Rectangle(Polygon):
             number_of_height_elements,
             boundary_condition,
         )
+        super()._set_boundary_conditions()
 
     def _set_vertices(self, p0, w, h, nx, ny):
         n = 2 * (nx + ny)
