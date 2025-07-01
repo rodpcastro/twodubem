@@ -140,3 +140,26 @@ class LineElement(Element):
 
         return distance
 
+    def is_on_element(self, point_global):
+        """Determine if ``point`` is on the boundary element.
+        
+        Parameters
+        ----------
+        point_global : ndarray[float], shape=(2,)
+            Point coordinates in the global system.
+
+        Returns
+        -------
+        on_boundary : bool
+            If ``True``, ``point`` is on the boundary element.
+        """
+
+        distance = self.get_point_distance(point_global)
+
+        if ismall(distance, self.length):
+            on_boundary = True
+        else:
+            on_boundary = False
+
+        return on_boundary
+
