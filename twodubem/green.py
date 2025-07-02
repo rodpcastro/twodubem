@@ -20,13 +20,13 @@ import numpy as np
 class Green:
 
     @staticmethod
-    def eval(field, source):
+    def eval(field_point, source_point):
         """Green's function evaluation."""
 
         raise NotImplementedError
 
     def get_line_element_influence_coefficients(
-        self, field_element, source_element, method='constant', *args, **kwargs,
+        self, field_element, source_point, method='constant', *args, **kwargs,
     ):
         """Get influence coefficients on a line element."""
 
@@ -34,21 +34,20 @@ class Green:
 
         if method_ == 'constant':
             return self._get_line_element_constant_influence_coefficients(
-                field_element, source_element, *args, **kwargs,
+                field_element, source_point, *args, **kwargs,
             )
         elif method_ == 'linear':
             return self._get_line_element_linear_influence_coefficients(
-                field_element, source_element, *args, **kwargs,
+                field_element, source_point, *args, **kwargs,
             )
         else:
             raise ValueError(f"Invalid solution approximation method '{method}'")
 
     def _get_line_element_constant_influence_coefficients(
-        self, field_element, source_element, *args, **kwargs,
+        self, field_element, source_point, *args, **kwargs,
     ):
         """Get constant influence coefficients on a line element."""
 
-        source_point = source_element.node
         a = 0.5 * field_element.length
 
         # 4-point Gauss-Legendre quadrature roots and weights.
@@ -81,7 +80,7 @@ class Green:
         return G, Q, gradG, gradQ
 
     def _get_line_element_linear_influence_coefficients(
-        self, field_element, source_element, *args, **kwargs,
+        self, field_element, source_point, *args, **kwargs,
     ):
         """Get linear influence coefficients on a line element."""
 

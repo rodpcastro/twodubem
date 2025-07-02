@@ -58,7 +58,7 @@ class Laplace(Green):
         return g, gradg, gradk
 
     def _get_line_element_constant_influence_coefficients(
-        self, field_element, source_element, show_warnings=True,
+        self, field_element, source_point, show_warnings=True,
     ):
         """Get constant influence coefficients on a line element.
 
@@ -66,8 +66,8 @@ class Laplace(Green):
         ----------
         field_element : LineElement
             Field element, where the integration is carried over.
-        source_element : LineElement
-            Source element, where the source is located.
+        source_point : ndarray[float], shape=(2,)
+            Source point, where the source is located.
         show_warnings : bool, default=True
             Show warning messages.
 
@@ -86,10 +86,9 @@ class Laplace(Green):
         -----
         TDBWarning
             Inaccurate or singular behavior for the influence coefficients gradients 
-            when the source point is too close or inside the field element.
+            when the source point is too close or on a boundary element.
         """
 
-        source_point = source_element.node
         x, y = field_element.get_point_local_coordinates(source_point)
 
         elength = field_element.length
@@ -135,9 +134,13 @@ class Laplace(Green):
             gradQ = np.array([np.nan, np.nan], dtype=np.float64)
             if show_warnings:
                 tdb_warn("Influence coefficients gradients are inaccurate "
-                         "or singular for a source point too close or inside "
-                         "the field element. Returning NaN instead.")
+                         "or singular for a source point too close or on "
+                         "a boundary element. Returning NaN instead.")
         else:
+            # I had to add a negative sign in the definition of the jacobian matrix to
+            # get the correct signs for the gradients. I'm not sure, but I believe the
+            # reason is the fact that my local coordinate system is left handed, while
+            # the reference (Crouch, 2024) uses a right handed local system.
             J = -np.vstack((field_element.tangent, field_element.normal)).T
 
             Gx = -np.log(r1 / r2)
