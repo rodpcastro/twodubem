@@ -12,6 +12,11 @@ Classes
 -------
 Laplace
     Green's function for 2D Laplace's equation.
+
+References
+----------
+1. Steven L. Crouch, Sofia G. Mogilevskaya. 2024. A First Course in
+   Boundary Element Methods. Springer, Cham, Switzerland.
 """
 
 import numpy as np
