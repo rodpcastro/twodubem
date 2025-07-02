@@ -63,29 +63,9 @@ class Laplace(Green):
         return g, gradg, gradk
 
     def _get_line_element_constant_influence_coefficients(
-        self, field_element, source_point, show_warnings=True,
+        self, element, point, show_warnings=True,
     ):
         """Get constant influence coefficients on a line element.
-
-        Parameters
-        ----------
-        field_element : LineElement
-            Field element, where the integration is carried over.
-        source_point : ndarray[float], shape=(2,)
-            Point where the source is located.
-        show_warnings : bool, default=True
-            Show warning messages.
-
-        Returns
-        -------
-        G : float
-            Integral of the Green's function over the element.
-        Q : float
-            Integral of the Green's function normal derivative over the element.
-        gradG : ndarray[float], shape=(2,)
-            Gradient of G in the global coordinate system.
-        gradQ : ndarray[float], shape=(2,)
-            Gradient of Q in the global coordinate system.
 
         Warns
         -----
@@ -94,30 +74,30 @@ class Laplace(Green):
             when the point is too close or on the boundary.
         """
 
-        x, y = field_element.get_point_local_coordinates(source_point)
+        x, y = element.get_point_local_coordinates(point)
 
-        elength = field_element.length
+        elength = element.length
         a = 0.5 * elength
 
-        # Source point on field element (|x| ≤ a, |y| = 0).
-        is_source_on_element = ismall(y, elength) and np.abs(x) <= a
+        # Point on element (|x| ≤ a, |y| = 0).
+        is_point_on_element = ismall(y, elength) and np.abs(x) <= a
 
-        # Source point on field element's endpoints (|x| = a, |y| = 0).
-        is_source_on_endpoint = ismall(y, elength) and ismall(np.abs(x) - a, elength)
-       
-        # Source point on field element's node (|x| = 0, |y| = 0).
-        is_source_on_node = ismall(x, elength) and ismall(y, elength)
+        # Point on element's endpoints (|x| = a, |y| = 0).
+        is_point_on_endpoint = ismall(y, elength) and ismall(np.abs(x) - a, elength)
 
-        # Q is discontinuous for (|x| ≤ a, y = 0). Returns Q = 0.0 in this region.
-        if is_source_on_endpoint:
+        # Point on element's node (|x| = 0, |y| = 0).
+        is_point_on_node = ismall(x, elength) and ismall(y, elength)
+
+        # Q is discontinuous for (|x| ≤ a, |y| = 0). Returns Q = 0.0 in this region.
+        if is_point_on_endpoint:
             G = a / np.pi * (np.log(2.0 * a) - 1.0)
             Q = 0.0
-        elif is_source_on_node:
+        elif is_point_on_node:
             G = a / np.pi * (np.log(a) - 1.0)
             Q = 0.0
         else:
             hp = 0.5 / np.pi
-            
+
             xpa = x + a
             xma = x - a
 
@@ -137,8 +117,8 @@ class Laplace(Green):
         # Gradients are calculated for a point on the domain's interior. They are not
         # used to obtain the solution at the boundary. On the other hand, Q, the normal
         # derivative of G, is calculated at the boundary. This explains why the dot
-        # product between gradG and the field_element normal vector is -Q.
-        if is_source_on_element:
+        # product between gradG and the element normal vector is -Q.
+        if is_point_on_element:
             gradG = np.array([np.nan, np.nan], dtype=np.float64)
             gradQ = np.array([np.nan, np.nan], dtype=np.float64)
             if show_warnings:
@@ -146,7 +126,8 @@ class Laplace(Green):
                          "singular for a point too close or on the boundary. "
                          "Returning NaN instead.")
         else:
-            J = np.vstack((field_element.tangent, field_element.normal)).T
+            # Jacobian matrix.
+            J = np.vstack((element.tangent, element.normal)).T
 
             Gx = -np.log(r1 / r2)
             Gy = t1m2
@@ -155,6 +136,6 @@ class Laplace(Green):
             Qx = -y / r1**2 + y / r2**2
             Qy = xma / r1**2 - xpa / r2**2
             gradQ = -hp * J @ np.array([Qx, Qy])
-            
+
         return G, Q, gradG, gradQ
 
