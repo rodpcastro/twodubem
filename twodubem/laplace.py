@@ -72,7 +72,7 @@ class Laplace(Green):
         field_element : LineElement
             Field element, where the integration is carried over.
         source_point : ndarray[float], shape=(2,)
-            Source point, where the source is located.
+            Point where the source is located.
         show_warnings : bool, default=True
             Show warning messages.
 
@@ -90,8 +90,8 @@ class Laplace(Green):
         Warns
         -----
         TDBWarning
-            Inaccurate or singular behavior for the influence coefficients gradients 
-            when the source point is too close or on a boundary element.
+            Inaccurate or singular behavior for the influence coefficients' gradients 
+            when the point is too close or on the boundary.
         """
 
         x, y = field_element.get_point_local_coordinates(source_point)
@@ -134,19 +134,19 @@ class Laplace(Green):
             else:
                 Q = -hp * t1m2
 
+        # Gradients are calculated for a point on the domain's interior. They are not
+        # used to obtain the solution at the boundary. On the other hand, Q, the normal
+        # derivative of G, is calculated at the boundary. This explains why the dot
+        # product between gradG and the field_element normal vector is -Q.
         if is_source_on_element:
             gradG = np.array([np.nan, np.nan], dtype=np.float64)
             gradQ = np.array([np.nan, np.nan], dtype=np.float64)
             if show_warnings:
-                tdb_warn("Influence coefficients gradients are inaccurate "
-                         "or singular for a source point too close or on "
-                         "a boundary element. Returning NaN instead.")
+                tdb_warn("Influence coefficients' gradients are inaccurate or "
+                         "singular for a point too close or on the boundary. "
+                         "Returning NaN instead.")
         else:
-            # I had to add a negative sign in the definition of the jacobian matrix to
-            # get the correct signs for the gradients. I'm not sure, but I believe the
-            # reason is the fact that my local coordinate system is left handed, while
-            # the reference (Crouch, 2024) uses a right handed local system.
-            J = -np.vstack((field_element.tangent, field_element.normal)).T
+            J = np.vstack((field_element.tangent, field_element.normal)).T
 
             Gx = -np.log(r1 / r2)
             Gy = t1m2

@@ -73,9 +73,14 @@ class Green:
             gradK += weights[i] * (gradk_p + gradk_m)
 
         G = a * G
-        gradG = a * gradG
-        Q = gradG @ field_element.normal
-        gradQ = a * gradK @ field_element.normal
+        Q = a * gradG @ field_element.normal
+
+        # The negative sign is used for the the gradients because they are calculated
+        # for a point on the domain's interior. Q (the normal derivative of G), on the
+        # other hand, is computed for a point on the boundary. The gradients are not
+        # used to obtain the solution at the boundary.
+        gradG = -a * gradG
+        gradQ = -a * gradK @ field_element.normal
 
         return G, Q, gradG, gradQ
 
