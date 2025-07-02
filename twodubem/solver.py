@@ -17,7 +17,9 @@ Solver
 import numpy as np
 from twodubem._internal import tdb_warn
 
+
 class Solver:
+    # TODO: Implement a decorator on _internal to save figures as svg file.
     """Solution of a boundary value problem using the Boundary Element Method.
 
     Parameters
@@ -26,6 +28,9 @@ class Solver:
         Boundary of the region where the differential operator acts.
     green_function : Green
         Green's function associated with the differential operator.
+    method : str, default='constant'
+        Approximation method used for the solution function. Available methods are
+        'constant' and 'linear'.
 
     Attributes
     ----------
@@ -44,9 +49,10 @@ class Solver:
         Get solution at a given grid of points.
     """
 
-    def __init__(self, boundary, green_function):
+    def __init__(self, boundary, green_function, method='constant'):
         self.boundary = boundary
         self.green = green_function
+        self.method = method
 
     def _build_influence_matrices(self):
         """Build influence coefficients matrices."""
@@ -58,7 +64,12 @@ class Solver:
         for i, source_element in enumerate(self.boundary.elements):
             source_point = source_element.node
             for j, field_element in enumerate(self.boundary.elements):
-                g, q, _, _ = self.green.get_line_element_influence_coefficients(field_element, source_point, show_warnings=False)
+                g, q, _, _ = self.green.get_line_element_influence_coefficients(
+                        field_element,
+                        source_point,
+                        method=self.method,
+                        show_warnings=False,
+                )
                 self.G[i, j] = g
                 self.Q[i, j] = q
                 if i == j:
@@ -144,7 +155,47 @@ class Solver:
         self.u = u
         self.q = q
 
-    def get_solution(self, X, Y, check_points=True, show_warnings=False):
+    def show_boundary_solution(self):
+        """Display graphical representation of the solution on the boundaries."""
+
+        import matplotlib.pyplot as plt
+        from matplotlib import ticker
+
+        fig, ax = plt.subplots(figsize=(5,4))
+        
+        n_start = 0
+        for i, vertices in self.boundary.vertices.items():
+            n = len(vertices) - 1
+            n_end = n_start + n
+            v = np.empty(2*n, dtype=np.int16)
+            z = np.empty(2*n, dtype=np.float64)
+            for j in range(n_start, n_end):
+                v[2*j:2*(j+1)] = [j, j+1]
+                if self.method == 'constant':
+                    z[2*j:2*(j+1)] = self.u[j]
+                elif self.method == 'linear':
+                    z[2*j:2*(j+1)] = self.u[j:j+1]
+    
+            ax.plot(v, z, label=rf'$B_{i}$')
+            n_start = n_end
+
+        ax.set_title('Solution on the boundaries')
+        ax.set_xlabel('Vertex index')
+        ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
+        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2e'))
+        plt.legend(loc='upper right')
+        plt.grid()
+        plt.show()
+    
+    def _get_boundary_solution(self, element_index, point):
+        """Get solution for point on the boundary."""
+
+        if self.method == 'constant':
+            return self.u[element_index]
+        elif self.method == 'linear':
+            raise NotImplementedError
+
+    def get_solution(self, X, Y, check_points=False, show_warnings=False):
         """Get solution for array of points.
 
         Parameters
@@ -153,8 +204,10 @@ class Solver:
             Array with points' x-coordinates.
         Y : ndarray[float], shape=(n, m)
             Array with points' y-coordinates.
-        check_points : bool, default=True
-            Check if point is on the boundary, in the domain's interior or outside the domain.
+        check_points : bool, default=False
+            Check if point is on the boundary, in the domain's interior or outside the
+            domain. If set to `True`, computations are slower. If it's known that all
+            points are in the domain's interior, keep this option `False`.
         show_warnings : bool, default=False
             Show warning messages.
 
@@ -164,6 +217,12 @@ class Solver:
             Solution at the array of points.
         W : ndarray[float], shape=(n, m, 2)
             Gradient of the solution at the array of points.
+
+        Warns
+        -----
+        TDBWarning
+            Returns NaN for points outside the domain, and returns NaN gradients for
+            points on the boundary.
         """
 
         n = self.boundary.number_of_elements
@@ -182,26 +241,32 @@ class Solver:
             if check_points:
                 on_boundary, element_index = self.boundary.is_on_boundary(field_point)
                 if on_boundary:
-                    z[i] = self.u[element_index]  # TODO: edit this once the linear element is implemented.
+                    z[i] = self._get_boundary_solution(element_index, point)
                     w[i] = np.nan
                     if show_warnings:
-                        tdb_warn(f"Point ({x[i]}, {y[i]}) is on the boundary. Returning NaN for the gradient.")
+                        tdb_warn(f"Point ({x[i]}, {y[i]}) is on the boundary. "
+                                 f"Returning NaN for the gradient.")
                     continue
                 elif not self.boundary.is_on_domain_interior(field_point):
                     z[i] = np.nan
                     w[i] = np.nan
                     if show_warnings:
-                        tdb_warn(f"Point ({x[i]}, {y[i]}) is outside the domain. Returning NaN instead.")
+                        tdb_warn(f"Point ({x[i]}, {y[i]}) is outside the domain. "
+                                 f"Returning NaN instead.")
                     continue
 
             for j, source_element in enumerate(self.boundary.elements):
                 
-                g, q, gradg, gradq = self.green.get_line_element_influence_coefficients(source_element, field_point, show_warnings=show_warnings)
-                
-                G[j] = g
-                Q[j] = q
-                gradG[:, j] = gradg
-                gradQ[:, j] = gradq
+                Gj, Qj, gGj, gQj = self.green.get_line_element_influence_coefficients(
+                    source_element,
+                    field_point,
+                    method=self.method,
+                    show_warnings=show_warnings,
+                )
+                G[j] = Gj
+                Q[j] = Qj
+                gradG[:, j] = gGj
+                gradQ[:, j] = gQj
 
             z[i] = Q @ self.u - G @ self.q
             w[i] = gradQ @ self.u - gradG @ self.q
