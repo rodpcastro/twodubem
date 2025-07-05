@@ -19,37 +19,36 @@ Square
 """
 
 import numpy as np
-from numpy import ndarray
-from twodubem.element import LineElement
+from twodubem.geometry import Polygon
 from twodubem._internal import ismall
 
+class Boundary:
+    """Collection of polygonal boundaries.
 
-class Polygon:
-    # TODO: Update docstrings to explain that the normal vector should point outward the domain.
-    # TODO: If there's only one boundary, with domain on the outside, change background color to silver.
-    """Polygonal boundary.
-    
-    See examples section for instructions on how to structure the input file.
+    An object of this class can be created from an input file or by operations between
+    Polygon objects.
+
+    See the examples section for instructions on how to create a Boundary object.
 
     Parameters
     ----------
-    file_name : str
+    filename : str, default=''
         Input file name.
 
     Attributes
     ----------
     number_of_elements : int
         Number of elements.
-    vertices : dict
-        Vertices of the polygon. On each boundary, the last vertex is coincident with
-        the first to form a closed boundary.
     elements : list[LineElement]
         List of elements.
-    bc_types : dict
-        Boundary condition types on boundary nodes. Value ``0`` represents Dirichlet
-        boundary condition and value ``1`` represents Neumann boundary condition.
+    boundaries : list[Polygon]
+        List of boundaries.
     bc_values : dict
         Boundary condition values on boundary nodes.
+    bc_dirichlet : ndarray[bool], shape=(n,)
+        Boolean array indicating what elements contain a Dirichlet boundary condition.
+    bc_neumann : ndarray[bool], shape=(n,)
+        Boolean array indicating what elements contain a Neumann boundary condition.
 
     Methods
     -------
@@ -57,7 +56,7 @@ class Polygon:
         Determine if ``point`` is on the boundary.
     is_on_domain_interior(point)
         Determine if ``point`` is on the domain's interior.
-    save(file_name)
+    save(filename)
         Save geometry and boundary condition data to file.
     show()
         Display a graphical representation of the boundary.
@@ -82,39 +81,45 @@ class Polygon:
     0.0    1.0    1    0.0
     #input_file_end
 
-    The vertices defining the external boundary must be ordered in the counterclockwise
-    orientation. Additional boundaries in the input file are used to represent internal
-    boundaries (holes), and must be defined after the external boundary. Internal
-    boundaries must be ordered in the clockwise orientation.
+    The normal vector always points outwards from the domain, and the tangent vector's
+    direction follows the boundary orientation (counterclockwise or clockwise).
+
+    If the vertices of a boundary are ordered in a counterclockwise orientation, the 
+    domain lies inside the boundary. Conversely, if the vertices are ordered in a
+    clockwise orientation, the domain lies outside the boundary.
+
+    A single clockwise oriented-boundary defines a domain that covers the entire plane,
+    excluding the region enclosed by the boundary. A clockwise-oriented boundary
+    enclosed by a counterclockwise-oriented boundary represents an internal hole.
     """
 
-    def __init__(self, file_name):
-        self._load(file_name)
+    def __init__(self, filename=''):
+        self.boundaries: list[Polygon] = []
+        if filename:
+            self._filename = filename
+            self._load(filename)
+            self._set_boundary_properties()
+
+    def _set_boundary_properties(self):
         self._set_elements()
         self._set_boundary_conditions()
 
     def _set_elements(self):
         self.elements = []
-        for i, vertices in self.vertices.items():
-            for j in range(len(vertices) - 1):
-                self.elements.append(
-                    LineElement(
-                        vertices[j],
-                        vertices[j+1],
-                    )
-                )
+        for boundary in self.boundaries:
+            self.elements += boundary.elements
 
         self.number_of_elements = len(self.elements)
 
     def _set_boundary_conditions(self):
         self.bc_neumann = np.array([], dtype=np.bool)
-        self.bc_values_ = np.array([], dtype=np.float64)
-        for i in self.bc_types.keys():
+        self.bc_values = np.array([], dtype=np.float64)
+        for boundary in self.boundaries:
             self.bc_neumann = np.concatenate(
-                (self.bc_neumann, self.bc_types[i].astype(np.bool))
+                (self.bc_neumann, boundary.bc_neumann)
             )
-            self.bc_values_ = np.concatenate(
-                (self.bc_values_, self.bc_values[i])
+            self.bc_values = np.concatenate(
+                (self.bc_values, boundary.bc_values)
             )
 
         self.bc_dirichlet = ~self.bc_neumann
@@ -133,7 +138,7 @@ class Polygon:
             If ``True``, ``point`` is on the boundary.
         element_index : int
             Index of the closest element. If ``point`` is not on the boundary, ``None``
-            is returned.
+            is returned. If point is on a vertex, the lowest element index is returned.
         """
 
         on_boundary = False
@@ -149,42 +154,20 @@ class Polygon:
     def is_on_domain_interior(self, point):
         """Determine if ``point`` is on the domain's interior."""
 
-        # Ray-casting algorithm.
-        number_of_horizontal_intersections = 0
-        for element in self.elements:
-            endpoints_relative = element.endpoints - point
-            if np.any(endpoints_relative[:, 0] >= 0):
-                if ismall(endpoints_relative[:, 1].prod(), element.length):
-                    # If the point y-coordinate coincides with the polygon vertex.
-                    yr1 = endpoints_relative[0, 1]
-                    yr2 = endpoints_relative[1, 1]
-                    if ismall(yr1, element.length) and ismall(yr2, element.length):
-                        # Skip if point is colinear with element's endpoints.
-                        continue
-                    elif ismall(yr2, element.length):
-                        # Count for only one of the elements that share the vertex.
-                        number_of_horizontal_intersections += 1
-                if endpoints_relative[:, 1].prod() < 0:
-                    if np.all(endpoints_relative[:, 0] >= 0):
-                        number_of_horizontal_intersections += 1
-                    else:
-                        x1, y1 = element.endpoints[0]
-                        x2, y2 = element.endpoints[1]
-                        x_intersection = x1 + (x2 - x1) / (y2 - y1) * (point[1] - y1)
-                        if point[0] < x_intersection:
-                            number_of_horizontal_intersections += 1
+        for boundary in self.boundaries:
+            if not boundary.is_on_domain_interior(point):
+                # If it finds that the point is outside 
+                # one of the boundaries, exit loop.
+                return False
 
-        if number_of_horizontal_intersections % 2 == 0:
-            return False
-        else:
-            return True
+        return True
     
-    def save(self, file_name):
+    def save(self, filename):
         """Save boundary data to file."""
 
-        with open(file_name, 'w') as file:
+        with open(filename, 'w') as file:
             # File header.
-            number_of_boundaries = max(self.vertices.keys()) + 1
+            number_of_boundaries = len(self.boundaries)
             file.write(f'#TwoDuBEM\n')
             file.write(f'#Number of boundaries: {number_of_boundaries}\n')
             file.write(
@@ -196,72 +179,89 @@ class Polygon:
             )
 
             # File data.
-            for i in self.vertices.keys():
+            for i, boundary in enumerate(self.boundaries):
                 file.write(f'!boundary {i}\n')
-                for j in range(len(self.vertices[i]) - 1):
+                for j in range(boundary.number_of_elements):
                     file.write(
-                        f'{self.vertices[i][j, 0]:.15e}    '
-                        f'{self.vertices[i][j, 1]:.15e}    '
-                        f'{self.bc_types[i][j]}    '
-                        f'{self.bc_values[i][j]:.15e}\n'
+                        f'{boundary.vertices[j, 0]:.15e}    '
+                        f'{boundary.vertices[j, 1]:.15e}    '
+                        f'{boundary.bc_types[j]}    '
+                        f'{boundary.bc_values[j]:.15e}\n'
                     )
                 if i < number_of_boundaries - 1:
                     file.write(f'\n')
 
-    def _load(self, file_name):
+    def _load(self, filename):
         """Load boundary data from file."""
-        
-        vertices = dict()
-        bc_types = dict()
-        bc_values = dict()
-        with open(file_name, 'r') as file:
+
+        def create_polygonal_boundary(vertices, bc_types, bc_values):
+            # The last vertex must be equal to the first to form a closed boundary.
+            vertices.append(vertices[0])
+
+            # converting data to numpy arrays.
+            vertices = np.array(vertices, np.float64)
+            bc_types = np.array(bc_types, dtype=np.int8)
+            bc_values = np.array(bc_values, dtype=np.float64)
+
+            self.boundaries.append(Polygon(vertices, bc_types, bc_values))
+
+        self.boundaries = []
+        with open(filename, 'r') as file:
             i = 0
             for line in file:
-                data_line = line.strip()
-                if data_line:
-                    # Skip empty lines.
+                data_line = line.strip().lower()
+                if data_line and data_line[0] != '#':
+                    # Skip empty and comment lines.
                     if '!boundary' in data_line:
                         # Boundary data.
+                        if i > 0:
+                            create_polygonal_boundary(vertices, bc_types, bc_values)
+                            i -= 1
                         i += 1
-                        vertices[i-1] = []
-                        bc_types[i-1] = []
-                        bc_values[i-1] = []
+                        vertices = []
+                        bc_types = []
+                        bc_values = []
                         continue
-                    elif i > 0:
+                    else:
                         x, y, bc_type, bc_value = data_line.split()
-                        vertices[i-1].append([x, y])
-                        bc_types[i-1].append(bc_type)
-                        bc_values[i-1].append(bc_value)
-        
-            for j in range(i):
-                # The last vertex must be equal to the first to form a closed boundary.
-                vertices[j].append(vertices[j][0])
-        
-                # converting data to numpy arrays.
-                vertices[j] = np.array(vertices[j], np.float64)
-                bc_types[j] = np.array(bc_types[j], dtype=np.int8)
-                bc_values[j] = np.array(bc_values[j], dtype=np.float64)
+                        vertices.append([x, y])
+                        bc_types.append(bc_type)
+                        bc_values.append(bc_value)
 
-        self.vertices = vertices
-        self.bc_types = bc_types
-        self.bc_values = bc_values
+            create_polygonal_boundary(vertices, bc_types, bc_values)
+            self.number_of_boundaries = len(self.boundaries)
 
-    def show(self):
-        """Display a graphical representation of the boundary."""
+    def show(self, filename=''):
+        """Display a graphical representation of the boundary.
+        
+        Paramaters
+        ----------
+        filename : str, default=''
+            Name of the file in which the figure is saved. If not specified, the figure
+            is not saved to a file.
+        """
 
         import matplotlib.pyplot as plt
-        from matplotlib.patches import Polygon
+        from matplotlib.patches import Polygon as PolygonPatch
 
         fig, ax = plt.subplots()
 
-        for i, vertices in self.vertices.items():
-            color = 'silver' if i == 0 else 'white'
-            boundary = Polygon(vertices, color=color)
-            ax.add_patch(boundary)
-            ax.set_aspect('equal')
+        ax.set_aspect('equal')
+
+        for i, boundary in enumerate(self.boundaries):
+            if i == 0 and boundary.orientation < 0:
+                ax.set_facecolor('silver')
+
+            if boundary.orientation > 0:
+                color = 'silver'
+            else:
+                color = 'white'
+            
+            bpatch = PolygonPatch(boundary.vertices, color=color)
+            ax.add_patch(bpatch)
             ax.plot(
-                vertices[:, 0],
-                vertices[:, 1],
+                boundary.vertices[:, 0],
+                boundary.vertices[:, 1],
                 'r-',
                 marker='o',
                 markersize=3,
@@ -269,73 +269,39 @@ class Polygon:
                 markeredgecolor='k',
                 linewidth=2,
             )
+
+        if filename:
+            plt.savefig(filename, bbox_inches='tight')
+
         plt.show()
 
-    def _copy(self):
-        from copy import deepcopy
-        return deepcopy(self)
-
     def __neg__(self):
-        negative_polygon = self._copy()
-        negative_polygon.vertices = self.vertices[::-1]
-        negative_polygon.bc_types = self.bc_types[::-1]
-        negative_polygon.bc_values = self.bc_values[::-1]
-        negative_polygon._set_elements()
-        
-        return negative_polygon
+        B = Boundary()
+        B.boundaries = [-b for b in self.boundaries]
+        B._set_boundary_properties()
 
+        return B
 
-class Rectangle(Polygon):
-    """Rectangular boundary.
+    def __sub__(self, other):
+        return self.__add__(-other)
 
-    Parameters
-    ----------
-    bottom_left_corner : ndarray[float], shape=(2,)
-        Array containing the global coordinates of the rectangle bottom left corner.
-    width : float
-        Rectangle width.
-    height : float
-        Rectangle height.
-    number_of_width_elements : int
-        Number of elements on bottom and top sides of the rectangle.
-    number_of_height_elements : int
-        Number of elements on left and right sides of the rectangle.
-    boundary_condition : callable
-        Function that describes the boundary condition. This function must receive as
-		inputs an integer representing the side of the rectangle (bottom=0, right=1,
-        top=2, left=3), and an array indicating the point where the boundary condition
-        is evaluated. This functions must return the boundary condition type, ``0`` for
-        Dirichlet and ``1`` for Neumann, and the boundary condition value.
-
-    Examples
-    --------
-    The code below creates a 2x1 rectangle, with bottom left corner at the origin, 4
-    elements on the bottom and top sides, 2 elements on the right and left sides, and
-    the following boundary conditions:
-
-    * Bottom and top sides: Dirichlet boundary condition, phi(x, y) = x * y
-    * Rigth and left sides: Neumann boundary condition, q(x, y) = 0.0
-    
-    ```python
-    from twodubem import Rectangle
-    def boundary_condition(side, point):
-        x, y = point
-        if side in [0, 2]:
-            bc_type = 0
-            bc_value = x * y
-        elif side in [1, 3]:
-            bc_type = 1
-            bc_value = 0.0
+    def __add__(self, other):
+        if isinstance(other, Polygon):
+            boundaries = self.boundaries.append(other)
+        elif isinstance(other, Boundary):
+            boundaries = self.boundaries + [b for b in other.boundaries]
         else:
-            raise ValueError('Invalid input.')
-        return bc_type, bc_value
-    
-    R = Rectangle([0.0, 0.0], 2.0, 1.0, 4, 2, boundary_condition)
-    ```
-    """
+            raise ValueError(f"Operand must be a Polygon or a Boundary")
 
-    def __init__(
-        self,
+        B = Boundary()
+        B.boundaries = boundaries
+        B._set_boundary_properties()
+
+        return B
+
+    @classmethod
+    def rectangle(
+        cls,
         bottom_left_corner,
         width,
         height,
@@ -343,113 +309,45 @@ class Rectangle(Polygon):
         number_of_height_elements,
         boundary_condition,
     ):
-        self._set_vertices(
+        """Create a rectangular boundary."""
+
+        from twodubem.geometry import Rectangle
+
+        R = Rectangle(
             bottom_left_corner,
             width,
             height,
             number_of_width_elements,
             number_of_height_elements,
-        )
-        self._set_elements()
-        self._set_boundary_conditions(
-            number_of_width_elements,
-            number_of_height_elements,
             boundary_condition,
         )
-        super()._set_boundary_conditions()
+        B = Boundary()
+        B.boundaries.append(R)
+        B._set_boundary_properties()
 
-    def _set_vertices(self, p0, w, h, nx, ny):
-        n = 2 * (nx + ny)
-        self.vertices = {0: np.empty((n + 1, 2), dtype=np.float64)}
-        for side in range(4):
-            if side == 0:
-                # Bottom side.
-                x0 = p0[0]
-                x1 = p0[0] + w
-                i0 = 0
-                i1 = nx
-                self.vertices[0][i0:i1, 0] = np.linspace(x0, x1, nx, endpoint=False)
-                self.vertices[0][i0:i1, 1] = p0[1]
-            elif side == 1:
-                # Right side.
-                y0 = p0[1]
-                y1 = p0[1] + h
-                i0 = nx
-                i1 = nx + ny
-                self.vertices[0][i0:i1, 0] = p0[0] + w
-                self.vertices[0][i0:i1, 1] = np.linspace(y0, y1, ny, endpoint=False)
-            elif side == 2:
-                # Top side.
-                x0 = p0[0] + w
-                x1 = p0[0]
-                i0 = nx + ny
-                i1 = nx + ny + nx
-                self.vertices[0][i0:i1, 0] = np.linspace(x0, x1, nx, endpoint=False)
-                self.vertices[0][i0:i1, 1] = p0[1] + h
-            elif side == 3:
-                # Left side.
-                y0 = p0[1] + h
-                y1 = p0[1]
-                i0 = nx + ny + nx
-                i1 = nx + ny + nx + ny
-                self.vertices[0][i0:i1, 0] = p0[0]
-                self.vertices[0][i0:i1, 1] = np.linspace(y0, y1, ny, endpoint=False)
+        return B
 
-        # The last vertex must be equal to the first to form a closed boundary.
-        self.vertices[0][-1] = self.vertices[0][0]
-
-    def _set_boundary_conditions(self, nx, ny, boundary_condition):
-        self.bc_types = {0: np.empty(self.number_of_elements, dtype=np.int8)}
-        self.bc_values = {0: np.empty(self.number_of_elements, dtype=np.float64)}
-        for i, element in enumerate(self.elements):
-            if 0 <= i < nx:
-                side = 0
-            elif nx <= i < nx + ny:
-                side = 1
-            elif nx + ny <= i < nx + ny + nx:
-                side = 2
-            elif nx + ny + nx <= i < nx + ny + nx + ny:
-                side = 3
-
-            bc_type, bc_value = boundary_condition(side, element.node)
-            self.bc_types[0][i] = bc_type
-            self.bc_values[0][i] = bc_value
-
-
-class Square(Rectangle):
-    """Square boundary.
-
-    This class is a simplification of ``Rectangle`` to create square boundaries.
-
-    Parameters
-    ----------
-    bottom_left_corner : ndarray[float], shape=(2,)
-        Array containing the global coordinates of the square bottom left corner.
-    side_length : float
-        Side length of the square.
-    number_of_side_elements : int
-        Number of elements on each side of the square.
-    boundary_condition : callable
-        Function that describes the boundary condition. This function must receive as
-		inputs an integer representing the side of the rectangle (bottom=0, right=1,
-        top=2, left=3), and an array indicating the point where the boundary condition
-        is evaluated. This functions must return the boundary condition type, ``0`` for
-        Dirichlet and ``1`` for Neumann, and the boundary condition value.
-    """
-
-    def __init__(
-        self,
+    @classmethod
+    def square(
+        cls,
         bottom_left_corner,
         side_length,
         number_of_side_elements,
         boundary_condition,
     ):
-        super().__init__(
+        """Create a square boundary."""
+
+        from twodubem.geometry import Square
+
+        S = Square(
             bottom_left_corner,
             side_length,
-            side_length,
-            number_of_side_elements,
             number_of_side_elements,
             boundary_condition,
         )
+        B = Boundary()
+        B.boundaries.append(S)
+        B._set_boundary_properties()
+
+        return B
 

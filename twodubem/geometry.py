@@ -30,6 +30,11 @@ from twodubem._internal import ismall, eps
 class Polygon:
     """Polygonal boundary.
 
+    Objects of this class define a boundary by a simply connected polygon. The domain
+    is located inside or outside the boundary, depending on the orientation of the
+    vertices, which also define the directions of the boundary normal and tangent
+    vectors.
+
     The normal vector always points outwards from the domain, and the tangent vector's
     direction follows the boundary orientation (counterclockwise or clockwise).
 
@@ -187,13 +192,20 @@ class Polygon:
         )
 
     def __sub__(self, other):
+        return self.__add__(-other)
+
+    def __add__(self, other):
         from twodubem import Boundary
 
-        if not isinstance(other, Polygon):
-            raise ValueError(f"Operand must be a Polygon.")
+        if isinstance(other, Polygon):
+            boundaries = [self, other]
+        elif isinstance(other, Boundary):
+            boundaries = [self] + other.boundaries
+        else:
+            raise ValueError(f"Operand must be a Polygon or a Boundary")
 
         B = Boundary()
-        B.boundaries = [self, -other]
+        B.boundaries = boundaries
         B._set_boundary_properties()
 
         return B
