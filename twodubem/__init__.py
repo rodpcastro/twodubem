@@ -19,12 +19,12 @@ Solver
     This module contains the classes to solve boundary value problems.
 """
 
-from twodubem.boundary import Polygon, Rectangle, Square
+from twodubem.boundary import Boundary
+from twodubem.laplace import Laplace
 from twodubem.solver import Solver
 
 __all__ = [
-    'Polygon',
-    'Rectangle',
-    'Square',
+    'Boundary',
+    'Laplace',
     'Solver',
 ]
