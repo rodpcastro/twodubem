@@ -19,7 +19,6 @@ from twodubem._internal import tdb_warn
 
 
 class Solver:
-    # TODO: Implement a decorator on _internal to save figures as svg file.
     """Solution of a boundary value problem using the Boundary Element Method.
 
     Parameters
@@ -75,8 +74,15 @@ class Solver:
                 if i == j:
                     self.Q[i, j] += -0.5
 
-    def show_influence_matrices(self):
-        """Display a graphical representation of the influence matrices."""
+    def show_influence_matrices(self, filename=''):
+        """Display a graphical representation of the influence matrices.
+
+        Paramaters
+        ----------
+        filename : str, default=''
+            Name of the file in which the figure is saved. If not specified, the figure
+            is not saved to a file.
+        """
 
         import matplotlib.pyplot as plt
 
@@ -120,6 +126,9 @@ class Solver:
             ticks=Qticks,
         )
         
+        if filename:
+            plt.savefig(filename, bbox_inches='tight')
+
         plt.show()
 
     def solve(self):
@@ -142,30 +151,37 @@ class Solver:
         C[:, bc_dirichlet] = -self.Q[:, bc_dirichlet]
         C[:, bc_neumann] = self.G[:, bc_neumann]
         
-        b = C @ self.boundary.bc_values_
+        b = C @ self.boundary.bc_values
 
         x = np.linalg.solve(A, b)
 
-        u[bc_dirichlet] = self.boundary.bc_values_[bc_dirichlet]
+        u[bc_dirichlet] = self.boundary.bc_values[bc_dirichlet]
         u[bc_neumann] = x[bc_neumann]
 
-        q[bc_neumann] = self.boundary.bc_values_[bc_neumann]
+        q[bc_neumann] = self.boundary.bc_values[bc_neumann]
         q[bc_dirichlet] = x[bc_dirichlet]
 
         self.u = u
         self.q = q
 
-    def show_boundary_solution(self):
-        """Display graphical representation of the solution on the boundaries."""
+    def show_boundary_solution(self, filename=''):
+        """Display graphical representation of the solution on the boundaries.
+
+        Paramaters
+        ----------
+        filename : str, default=''
+            Name of the file in which the figure is saved. If not specified, the figure
+            is not saved to a file.
+        """
 
         import matplotlib.pyplot as plt
         from matplotlib import ticker
 
         fig, ax = plt.subplots(figsize=(5,4))
-        
+
         n_start = 0
-        for i, vertices in self.boundary.vertices.items():
-            n = len(vertices) - 1
+        for i, boundary in enumerate(self.boundary.boundaries):
+            n = boundary.number_of_elements
             n_end = n_start + n
             v = np.empty(2*n, dtype=np.int16)
             z = np.empty(2*n, dtype=np.float64)
@@ -185,6 +201,10 @@ class Solver:
         ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2e'))
         plt.legend(loc='upper right')
         plt.grid()
+
+        if filename:
+            plt.savefig(filename, bbox_inches='tight')
+
         plt.show()
     
     def _get_boundary_solution(self, element_index, point):
@@ -256,7 +276,7 @@ class Solver:
                     continue
 
             for j, source_element in enumerate(self.boundary.elements):
-                
+
                 Gj, Qj, gGj, gQj = self.green.get_line_element_influence_coefficients(
                     source_element,
                     field_point,
