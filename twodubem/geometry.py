@@ -24,7 +24,7 @@ Circle
 import numpy as np
 from numpy import ndarray
 from twodubem.element import LineElement
-from twodubem._internal import ismall, eps
+from twodubem._internal import eps, ismall, tozero
 
 
 class Polygon:
@@ -225,6 +225,27 @@ class Polygon:
 
         plt.show()
 
+    def rotate(self, angle, center=np.zeros(2)):
+        """Rotate boundary around a center point by an angle.
+
+        Parameters
+        ----------
+        angle : float
+            Rotation angle in radians.
+        center : ndarray[float], shape=(2,), default=ndarray([0.0, 0.0])
+            Rotation center point, given as an array with its global coordinates.
+        """
+
+        R = np.array([[np.cos(angle), -np.sin(angle)],
+                      [np.sin(angle), np.cos(angle)]])
+
+        vertices_relative = self.vertices - center
+        vertices_relative_rotated = R @ vertices_relative.T
+        vertices_rotated = vertices_relative_rotated.T + center
+        
+        self.vertices = tozero(vertices_rotated)
+        self._set_elements()
+
     def __neg__(self):
         return Polygon(
             self.vertices[::-1],
@@ -284,7 +305,7 @@ class Rectangle(Polygon):
     * Rigth and left sides: Neumann boundary condition, q(x, y) = 0.0
     
     ```python
-    from twodubem import Rectangle
+    from twodubem.geometry import Rectangle
     def boundary_condition(side, point):
         x, y = point
         if side in [0, 2]:
@@ -294,7 +315,8 @@ class Rectangle(Polygon):
             bc_type = 1
             bc_value = 0.0
         else:
-            raise ValueError('Invalid input.')
+            raise ValueError('Invalid input for boundary condition')
+
         return bc_type, bc_value
     
     R = Rectangle([0.0, 0.0], 2.0, 1.0, 4, 2, boundary_condition)
@@ -420,4 +442,137 @@ class Square(Rectangle):
             number_of_side_elements,
             boundary_condition,
         )
+
+
+class Circle(Polygon):
+    """Circular boundary.
+
+    Objects of this class approximate a circle or a circular arc using polygons.
+
+    Parameters
+    ----------
+    center : ndarray[float], shape=(2,)
+        Array containing the global coordinates of the circle center.
+    radius : float
+        Circle radius.
+    angle1 : float, default=0.0
+        Angle in radians indicating the angular position of the first vertex.
+    angle2 : float, default=2π
+        Angle in radians indicating the angular position of the last vertex.
+    number_of_radius_elements : int, default=0
+        Number of elements along the radius. If the circle is incomplete and this
+        parameter is not given, the number of elements along the radius is calculated
+        such that the element's length along the radius approximate the element's
+        length along the circumference.
+    number_of_circumference_elements : int
+        Number of elements along the circumference.
+    boundary_condition : callable
+        Procedure that describes the boundary condition as function of the point on
+        the boundary. This functions must return the boundary condition type, ``0``
+        for Dirichlet and ``1`` for Neumann, and the boundary condition value.
+
+    Examples
+    --------
+    The code below creates a quarter of a circle of radius 1.0, centered at the origin,
+    with 5 elements along the arc of circumference, 3 elements along the radius, and
+    the following boundary conditions:
+
+    * Bottom side: Neumann boundary condition, phi(x, y=0.0) = -1.0
+    * Left side: Dirichlet boundary condition, phi(x=0.0, y) = y
+    * Arc of circumference: Dirichlet boundary condition, q(x>0.0, y>0.0) = x + y
+    
+    ```python
+    from numpy import pi
+    from twodubem.geometry import Circle
+
+    def boundary_condition(point):
+        x, y = point
+        if y == 0:
+            bc_type = 1
+            bc_value = -1.0
+        elif x == 0:
+            bc_type = 0
+            bc_value = y
+        elif x > 0 and y > 0:
+            bc_type = 0
+            bc_value = x + y
+        else:
+            raise ValueError(f"Invalid input for boundary condition")
+
+        return bc_type, bc_value
+
+    C = Circle([0.0, 0.0], 1.0, 5, boundary_condition, 3, 0.0, pi/2)
+    ```
+    """
+
+    def __init__(
+        self,
+        center,
+        radius,
+        number_of_circumference_elements,
+        boundary_condition,
+        number_of_radius_elements=0,
+        angle1=0.0,
+        angle2=2*np.pi,
+    ):
+        self._set_vertices(
+            center,
+            radius,
+            angle1,
+            angle2,
+            number_of_radius_elements,
+            number_of_circumference_elements,
+        )
+        self._set_elements()
+        self._set_boundary_conditions(boundary_condition)
+        super()._set_boundary_conditions()
+        self._set_boundary_orientation()
+
+    def _set_vertices(self, c, r, t1, t2, nr, nc):
+        vertices = []
+        if ismall(t2 - t1 - 2*np.pi):
+            for t in np.linspace(t1, t2, nc, endpoint=False):
+                x = c[0] + r * np.cos(t)
+                y = c[1] + r * np.sin(t)
+                vertices.append([x, y])
+        elif t2 - t1 < 2*np.pi:
+            # In case the number of radial elements is not given.
+            if nr == 0:
+                lc = r * (t2 - t1) / nc  # Length of circumferential element.
+                nr = np.round(r / lc).astype(np.int32)
+
+            # Along the radius for angle1.
+            for s in np.linspace(0.0, r, nr, endpoint=False):
+                x = c[0] + s * np.cos(t1)
+                y = c[1] + s * np.sin(t1)
+                vertices.append([x, y])
+
+            # Along the circumference.
+            for t in np.linspace(t1, t2, nc, endpoint=False):
+                x = c[0] + r * np.cos(t)
+                y = c[1] + r * np.sin(t)
+                vertices.append([x, y])
+
+            # Along the radius for angle2.
+            for s in np.linspace(r, 0.0, nr, endpoint=False):
+                x = c[0] + s * np.cos(t2)
+                y = c[1] + s * np.sin(t2)
+                vertices.append([x, y])
+        else:
+            raise ValueError(f"angle2 - angle1 must be lower than or equal to 2π")
+
+        # The last vertex must be equal to the first to form a closed boundary.
+        vertices.append(vertices[0])
+
+        vertices = np.array(vertices, dtype=np.float64)
+        vertices = tozero(vertices)
+        self.vertices = vertices
+
+    def _set_boundary_conditions(self, boundary_condition):
+        self.bc_types = np.empty(self.number_of_elements, dtype=np.int8)
+        self.bc_values = np.empty(self.number_of_elements, dtype=np.float64)
+        for i, element in enumerate(self.elements):
+            bc_type, bc_value = boundary_condition(element.node)
+            self.bc_types[i] = bc_type
+            self.bc_values[i] = bc_value
 
