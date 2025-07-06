@@ -184,6 +184,47 @@ class Polygon:
         else:
             return False
 
+    def show(self, filename=''):
+        """Display a graphical representation of the boundary.
+        
+        Paramaters
+        ----------
+        filename : str, default=''
+            Name of the file in which the figure is saved. If not specified, the figure
+            is not saved to a file.
+        """
+
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon as PolygonPatch
+
+        fig, ax = plt.subplots()
+
+        ax.set_aspect('equal')
+
+        if self.orientation > 0:
+            color = 'silver'
+        else:
+            ax.set_facecolor('silver')
+            color = 'white'
+        
+        bpatch = PolygonPatch(self.vertices, color=color)
+        ax.add_patch(bpatch)
+        ax.plot(
+            self.vertices[:, 0],
+            self.vertices[:, 1],
+            'r-',
+            marker='o',
+            markersize=3,
+            markerfacecolor='b',
+            markeredgecolor='k',
+            linewidth=2,
+        )
+
+        if filename:
+            plt.savefig(filename, bbox_inches='tight')
+
+        plt.show()
+
     def __neg__(self):
         return Polygon(
             self.vertices[::-1],
