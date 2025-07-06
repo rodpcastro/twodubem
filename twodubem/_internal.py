@@ -17,6 +17,8 @@ Functions
 ---------
 ismall(x, reference=1.0)
     Evaluate the smallness of a variable compared to a reference value.
+tozero(x, reference=1.0)
+    Make small values in array x equal zero.
 
 Classes
 -------
@@ -35,6 +37,16 @@ def ismall(x, reference = 1.0):
     """Evaluate the smallness of a variable compared to a reference value."""
 
     return np.abs(x) < reference * eps
+
+
+def tozero(x, reference = 1.0):
+    """Make small values in array x equal zero."""
+
+    y = x.copy()
+    mask = ismall(x, reference)
+    y[mask] = 0.0
+
+    return y
 
 
 class TDBWarning(Warning):
