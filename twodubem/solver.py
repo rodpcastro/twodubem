@@ -226,8 +226,8 @@ class Solver:
             Array with points' y-coordinates.
         check_points : bool, default=False
             Check if point is on the boundary, in the domain's interior or outside the
-            domain. If set to `True`, computations are slower. If it's known that all
-            points are in the domain's interior, keep this option `False`.
+            domain. If set to ``True``, computations are slower. If it's known that all
+            points are in the domain's interior, keep this option ``False``.
         show_warnings : bool, default=False
             Show warning messages.
 
