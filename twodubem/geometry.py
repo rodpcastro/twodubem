@@ -78,6 +78,8 @@ class Polygon:
         Determine if ``point`` is on the boundary.
     is_on_domain_interior(point)
         Determine if ``point`` is on the domain's interior.
+    show(filename='', show_element_index=False)
+        Display a graphical representation of the boundary.
     """
 
     def __init__(self, vertices, boundary_condition_types, boundary_condition_values):
@@ -87,6 +89,7 @@ class Polygon:
         self._set_elements()
         self._set_boundary_conditions()
         self._set_boundary_orientation()
+        self._set_boundary_size()
 
     def _set_elements(self):
         self.elements = []
@@ -114,6 +117,12 @@ class Polygon:
             A += 0.5 * (x1 * y2 - y1 * x2)
 
         self.orientation = np.sign(A)
+
+    def _set_boundary_size(self):
+        """Determine maximum width and height of the boundary."""
+
+        self._lx = np.max(self.vertices[:, 0]) - np.min(self.vertices[:, 0])
+        self._ly = np.max(self.vertices[:, 1]) - np.min(self.vertices[:, 1])
 
     def is_on_boundary(self, point):
         """Determine if ``point`` is on the boundary.
@@ -184,7 +193,7 @@ class Polygon:
         else:
             return False
 
-    def show(self, filename=''):
+    def show(self, filename='', show_element_index=False):
         """Display a graphical representation of the boundary.
         
         Paramaters
@@ -192,6 +201,8 @@ class Polygon:
         filename : str, default=''
             Name of the file in which the figure is saved. If not specified, the figure
             is not saved to a file.
+        show_element_index : bool, default=False
+            If ``True``, the element index is displayed near the element.
         """
 
         import matplotlib.pyplot as plt
@@ -222,6 +233,16 @@ class Polygon:
 
         if filename:
             plt.savefig(filename, bbox_inches='tight')
+
+        if show_element_index:        
+            lref = np.min([self._lx, self._ly])
+            index_offset = 0.03 * lref
+            
+            for i, element in enumerate(self.elements):
+                index_position = element.node - index_offset * element.normal
+                ax.text(
+                    *index_position, i, ha='center', va='center', fontsize='x-small'
+                )
 
         plt.show()
 
@@ -347,6 +368,7 @@ class Rectangle(Polygon):
         )
         super()._set_boundary_conditions()
         self._set_boundary_orientation()
+        self._set_boundary_size()
 
     def _set_vertices(self, p0, w, h, nx, ny):
         n = 2 * (nx + ny)
@@ -527,6 +549,7 @@ class Circle(Polygon):
         self._set_boundary_conditions(boundary_condition)
         super()._set_boundary_conditions()
         self._set_boundary_orientation()
+        self._set_boundary_size()
 
     def _set_vertices(self, c, r, t1, t2, nr, nc):
         vertices = []

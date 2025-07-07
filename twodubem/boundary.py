@@ -10,17 +10,14 @@ This module contains the classes to create boundaries.
 
 Classes
 -------
-Polygon
-    Polygonal boundary.
-Rectangle
-    Rectangular boundary.
-Square
-    Square boundary.
+Boundary
+    Collection of polygonal boundaries.
 """
 
 import numpy as np
 from twodubem.geometry import Polygon
 from twodubem._internal import ismall
+
 
 class Boundary:
     """Collection of polygonal boundaries.
@@ -58,7 +55,7 @@ class Boundary:
         Determine if ``point`` is on the domain's interior.
     save(filename)
         Save geometry and boundary condition data to file.
-    show()
+    show(filename='', show_element_index=False)
         Display a graphical representation of the boundary.
 
     Examples
@@ -103,6 +100,7 @@ class Boundary:
     def _set_boundary_properties(self):
         self._set_elements()
         self._set_boundary_conditions()
+        self._set_boundary_size()
 
     def _set_elements(self):
         self.elements = []
@@ -124,6 +122,10 @@ class Boundary:
 
         self.bc_dirichlet = ~self.bc_neumann
     
+    def _set_boundary_size(self):
+        self._lx = np.max([b._lx for b in self.boundaries])
+        self._ly = np.max([b._ly for b in self.boundaries])
+
     def is_on_boundary(self, point):
         """Determine if ``point`` is on the boundary.
         
@@ -231,7 +233,7 @@ class Boundary:
             create_polygonal_boundary(vertices, bc_types, bc_values)
             self.number_of_boundaries = len(self.boundaries)
 
-    def show(self, filename=''):
+    def show(self, filename='', show_element_index=False):
         """Display a graphical representation of the boundary.
         
         Paramaters
@@ -239,6 +241,8 @@ class Boundary:
         filename : str, default=''
             Name of the file in which the figure is saved. If not specified, the figure
             is not saved to a file.
+        show_element_index : bool, default=False
+            If ``True``, the element index is displayed near the element.
         """
 
         import matplotlib.pyplot as plt
@@ -270,6 +274,16 @@ class Boundary:
                 linewidth=2,
             )
 
+        if show_element_index:        
+            lref = np.min([self._lx, self._ly])
+            index_offset = 0.03 * lref
+            
+            for i, element in enumerate(self.elements):
+                index_position = element.node - index_offset * element.normal
+                ax.text(
+                    *index_position, i, ha='center', va='center', fontsize='x-small'
+                )
+
         if filename:
             plt.savefig(filename, bbox_inches='tight')
 
@@ -287,7 +301,7 @@ class Boundary:
 
     def __add__(self, other):
         if isinstance(other, Polygon):
-            boundaries = self.boundaries.append(other)
+            boundaries = self.boundaries + [other]
         elif isinstance(other, Boundary):
             boundaries = self.boundaries + [b for b in other.boundaries]
         else:
