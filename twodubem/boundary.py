@@ -365,3 +365,33 @@ class Boundary:
 
         return B
 
+    @classmethod
+    def circle(
+        cls,
+        center,
+        radius,
+        number_of_circumference_elements,
+        boundary_condition,
+        number_of_radius_elements=0,
+        angle1=0.0,
+        angle2=2*np.pi,
+    ):
+        """Create a circular boundary."""
+
+        from twodubem.geometry import Circle
+
+        C = Circle(
+            center,
+            radius,
+            number_of_circumference_elements,
+            boundary_condition,
+            number_of_radius_elements,
+            angle1,
+            angle2,
+        )
+        B = Boundary()
+        B.boundaries.append(C)
+        B._set_boundary_properties()
+
+        return B
+
