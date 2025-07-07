@@ -37,6 +37,8 @@ class Solver:
         Boundary of the region where the differential operator acts.
     green : Green
         Green's function associated with the differential operator.
+    method : str
+        Approximation method used for the solution function.
 
     Methods
     -------
@@ -44,6 +46,8 @@ class Solver:
         Display a graphical representation of the influence matrices.
     solve()
         Solve the boundary value problem.
+    show_boundary_solution(filename='')
+        Display graphical representation of the solution on the boundary.
     get_solution(X, Y)
         Get solution at a given grid of points.
     """
@@ -165,7 +169,7 @@ class Solver:
         self.q = q
 
     def show_boundary_solution(self, filename=''):
-        """Display graphical representation of the solution on the boundaries.
+        """Display graphical representation of the solution on the boundary.
 
         Paramaters
         ----------
@@ -195,7 +199,7 @@ class Solver:
             ax.plot(v, z, label=rf'$B_{i}$')
             n_start = n_end
 
-        ax.set_title('Solution on the boundaries')
+        ax.set_title('Solution on the boundary')
         ax.set_xlabel('Vertex index')
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
         ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2e'))
