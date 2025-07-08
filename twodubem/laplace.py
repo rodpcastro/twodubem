@@ -116,7 +116,7 @@ class Laplace(Green):
 
         # Gradients are calculated for a point on the domain's interior. They are not
         # used to obtain the solution at the boundary. On the other hand, Q, the normal
-        # derivative of G, is calculated at the boundary. This explains why the dot
+        # derivative of G, is calculated on the boundary. This explains why the dot
         # product between gradG and the element normal vector is -Q.
         if is_point_on_element:
             gradG = np.array([np.nan, np.nan], dtype=np.float64)
