@@ -19,7 +19,7 @@ from numpy import ndarray
 from twodubem._internal import ismall
 
 
-class LineElement(Element):
+class LineElement:
     """Line segment boundary element.
 
     Parameters
