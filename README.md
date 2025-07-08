@@ -1,3 +1,4 @@
 # TwoDuBEM
 
-TwoDuBEM is a Python application that solves the two-dimensional Laplace's equation using the Boundary Element Method.
+TwoDuBEM uses the Boundary Element Method to solve two-dimensional partial differential
+equations that have been formulated as integral equations.
