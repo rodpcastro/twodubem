@@ -18,7 +18,7 @@ Rectangle
 Square
     Square boundary.
 Circle
-    Circular boundary. Not implemented.
+    Circular boundary.
 """
 
 import numpy as np

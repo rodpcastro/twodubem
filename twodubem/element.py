@@ -6,12 +6,10 @@
 Element
 =======
 
-This module contains classes to create boundary elements.
+This module contains the class to create a boundary element.
 
 Classes
 -------
-Element
-    Base class for boundary elements.
 LineElement
     Line segment boundary element.
 """
@@ -19,12 +17,6 @@ LineElement
 import numpy as np
 from numpy import ndarray
 from twodubem._internal import ismall
-
-
-class Element:
-    """Base class for boundary elements."""
-
-    pass
 
 
 class LineElement(Element):

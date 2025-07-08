@@ -6,7 +6,7 @@
 Boundary
 ========
 
-This module contains the classes to create boundaries.
+This module contains the class to create a collection of polygonal boundaries.
 
 Classes
 -------

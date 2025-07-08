@@ -6,7 +6,7 @@
 Solver
 ======
 
-This module contains the classes to solve Laplace's equation in two dimensions.
+This module contains the class to solve boundary value problems.
 
 Classes
 -------

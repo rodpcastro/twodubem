@@ -7,16 +7,19 @@
 TwoDuBEM
 ========
 
-TwoDuBEM solves the 2D Laplace's equation using the Boundary Element Method.
+TwoDuBEM uses the Boundary Element Method to solve two-dimensional partial differential
+equations that have been formulated as integral equations.
 
 Modules
 -------
 Element
-    This module contains classes to create boundary elements.
+    This module contains the class to create a boundary element.
+Geometry
+    This module contains the classes to create polygonal boundaries.
 Boundary
-    This module contains the classes to create boundaries.
+    This module contains the class to create a collection of polygonal boundaries.
 Solver
-    This module contains the classes to solve boundary value problems.
+    This module contains the class to solve boundary value problems.
 """
 
 from twodubem.boundary import Boundary
