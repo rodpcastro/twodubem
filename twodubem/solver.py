@@ -165,8 +165,29 @@ class Solver:
         q[bc_neumann] = self.boundary.bc_values[bc_neumann]
         q[bc_dirichlet] = x[bc_dirichlet]
 
-        self.u = u
-        self.q = q
+        self.u = u  # Solution at the nodes.
+        self.q = q  # Normal derivative at the nodes.
+        
+        self._get_tangential_derivative_on_boundary()
+
+    def _get_tangential_derivative_on_boundary(self):
+        self.green._eval_on_boundary = True
+
+        elements_nodes = np.empty((self.boundary.number_of_elements, 2))
+        elements_tangents = np.empty((self.boundary.number_of_elements, 2))
+
+        for i, element in enumerate(self.boundary.elements):
+            elements_nodes[i] = element.node
+            elements_tangents[i] = element.tangent
+
+        _, w = self.get_solution(elements_nodes[:, 0], elements_nodes[:, 1])
+
+        # Multiplying by 2.0, because the gradient w is evaluated on the boundary.
+        r = 2.0 * np.sum(w * elements_tangents, axis=1)
+
+        self.green._eval_on_boundary = False
+
+        self.r = r  # Tangential derivative at the nodes.
 
     def show_boundary_solution(self, filename=''):
         """Display graphical representation of the solution on the boundary.
