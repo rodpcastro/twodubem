@@ -39,6 +39,12 @@ class Solver:
         Green's function associated with the differential operator.
     method : str
         Approximation method used for the solution function.
+    u : ndarray[float], shape=(n, 2)
+        Solution at the nodes.
+    q : ndarray[float], shape=(n, 2)
+        Normal derivative at the nodes.
+    r : ndarray[float], shape=(n, 2)
+        Tangential derivative at the nodes.
 
     Methods
     -------
