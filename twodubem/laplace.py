@@ -27,6 +27,11 @@ from twodubem._internal import ismall, tdb_warn
 class Laplace(Green):
     """Green's function for 2D Laplace's equation."""
 
+    def __init__(self):
+        # This private attribute is a switch for evaluating inffluence coefficients'
+        # gradients on the boundary. By default, it's set to False.
+        self._eval_on_boundary = False
+
     @staticmethod
     def eval(field_point, source_point):
         """Green's function evaluation."""
@@ -78,6 +83,7 @@ class Laplace(Green):
 
         elength = element.length
         a = 0.5 * elength
+        hp = 0.5 / np.pi
 
         # Point on element (|x| ≤ a, |y| = 0).
         is_point_on_element = ismall(y, elength) and np.abs(x) <= a
@@ -92,12 +98,14 @@ class Laplace(Green):
         if is_point_on_endpoint:
             G = a / np.pi * (np.log(2.0 * a) - 1.0)
             Q = 0.0
+            gradG = np.array([np.nan, np.nan])
+            gradQ = np.array([np.nan, np.nan])
         elif is_point_on_node:
             G = a / np.pi * (np.log(a) - 1.0)
             Q = 0.0
+            gradG = -hp * np.pi * element.normal
+            gradQ = 2.0 * hp / a * element.normal
         else:
-            hp = 0.5 / np.pi
-
             xpa = x + a
             xma = x - a
 
@@ -114,18 +122,6 @@ class Laplace(Green):
             else:
                 Q = -hp * t1m2
 
-        # Gradients are calculated for a point on the domain's interior. They are not
-        # used to obtain the solution at the boundary. On the other hand, Q, the normal
-        # derivative of G, is calculated on the boundary. This explains why the dot
-        # product between gradG and the element normal vector is -Q.
-        if is_point_on_element:
-            gradG = np.array([np.nan, np.nan], dtype=np.float64)
-            gradQ = np.array([np.nan, np.nan], dtype=np.float64)
-            if show_warnings:
-                tdb_warn("Influence coefficients' gradients are inaccurate or "
-                         "singular for a point too close or on the boundary. "
-                         "Returning NaN instead.")
-        else:
             # Jacobian matrix.
             J = np.vstack((element.tangent, element.normal)).T
 
@@ -136,6 +132,18 @@ class Laplace(Green):
             Qx = -y / r1**2 + y / r2**2
             Qy = xma / r1**2 - xpa / r2**2
             gradQ = -hp * J @ np.array([Qx, Qy])
+
+        # Gradients are calculated for a point on the domain's interior. They are not
+        # used to obtain the solution at the boundary. On the other hand, Q, the normal
+        # derivative of G, is calculated on the boundary. This explains why the dot
+        # product between gradG and the element normal vector is -Q.
+        if is_point_on_element and not self._eval_on_boundary:
+            gradG = np.array([np.nan, np.nan])
+            gradQ = np.array([np.nan, np.nan])
+            if show_warnings:
+                tdb_warn("Influence coefficients' gradients are inaccurate or "
+                         "singular for a point too close or on the boundary. "
+                         "Returning NaN instead.")
 
         return G, Q, gradG, gradQ
 
