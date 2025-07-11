@@ -61,7 +61,15 @@ class Polygon:
         Vertices of the polygon. On each boundary, the last vertex is coincident with
         the first to form a closed boundary.
     elements : list[LineElement]
-        List of elements.
+        List of line segment elements that make up the sides of the polygon.
+    midpoints : ndarray[float], shape=(n, 2)
+        Array containing the positions of the midpoints between vertices.
+    tangents : ndarray[float], shape=(n, 2)
+        Tangent vectors to the sides of the polygon.
+    normals : ndarray[float], shape=(n, 2)
+        Normal vectors to the sides of the polygon.
+    lengths : ndarray[float], shape=(n, 2)
+        Lengths of the sides of the polygon.
     bc_types : ndarray[int], shape(n,)
         Boundary condition types on boundary nodes. Value ``0`` represents Dirichlet
         boundary condition and value ``1`` represents Neumann boundary condition.
@@ -87,6 +95,7 @@ class Polygon:
         self.bc_types = boundary_condition_types
         self.bc_values = boundary_condition_values
         self._set_elements()
+        self._set_sides_properties()
         self._set_boundary_conditions()
         self._set_boundary_orientation()
         self._set_boundary_size()
@@ -102,6 +111,17 @@ class Polygon:
             )
 
         self.number_of_elements = len(self.elements)
+
+    def _set_sides_properties(self):
+        self.midpoints = np.empty((self.number_of_elements, 2))
+        self.tangents = np.empty((self.number_of_elements, 2))
+        self.normals = np.empty((self.number_of_elements, 2))
+        self.lengths = np.empty(self.number_of_elements)
+        for i, element in enumerate(self.elements):
+            self.midpoints[i] = element.node
+            self.tangents[i] = element.tangent
+            self.normals[i] = element.normal
+            self.lengths[i] = element.length
 
     def _set_boundary_conditions(self):
         self.bc_neumann = np.array(self.bc_types, dtype=np.bool)
@@ -361,6 +381,7 @@ class Rectangle(Polygon):
             number_of_height_elements,
         )
         self._set_elements()
+        self._set_sides_properties()
         self._set_boundary_conditions(
             number_of_width_elements,
             number_of_height_elements,
@@ -546,6 +567,7 @@ class Circle(Polygon):
             number_of_circumference_elements,
         )
         self._set_elements()
+        self._set_sides_properties()
         self._set_boundary_conditions(boundary_condition)
         super()._set_boundary_conditions()
         self._set_boundary_orientation()

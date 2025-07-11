@@ -40,6 +40,15 @@ class Boundary:
         List of elements.
     boundaries : list[Polygon]
         List of boundaries.
+    midpoints : ndarray[float], shape=(n, 2)
+        Positions of the midpoints between vertices of the polygons that make up the
+        boundary.
+    tangents : ndarray[float], shape=(n, 2)
+        Tangent vectors to the sides of the polygons that make up the boundary.
+    normals : ndarray[float], shape=(n, 2)
+        Normal vectors to the sides of the polygons that make up the boundary.
+    lengths : ndarray[float], shape=(n, 2)
+        Lengths of the sides of the polygons that make up the boundary.
     bc_values : dict
         Boundary condition values on boundary nodes.
     bc_dirichlet : ndarray[bool], shape=(n,)
@@ -101,6 +110,7 @@ class Boundary:
         self._set_elements()
         self._set_boundary_conditions()
         self._set_boundary_size()
+        self._set_sides_properties()
 
     def _set_elements(self):
         self.elements = []
@@ -108,6 +118,17 @@ class Boundary:
             self.elements += boundary.elements
 
         self.number_of_elements = len(self.elements)
+
+    def _set_sides_properties(self):
+        self.midpoints = np.empty((0, 2))
+        self.tangents = np.empty((0, 2))
+        self.normals = np.empty((0, 2))
+        self.lengths = np.empty(0)
+        for boundary in self.boundaries:
+            self.midpoints = np.vstack((self.midpoints, boundary.midpoints))
+            self.tangents = np.vstack((self.tangents, boundary.tangents))
+            self.normals = np.vstack((self.normals, boundary.normals))
+            self.lengths = np.concatenate((self.lengths, boundary.lengths))
 
     def _set_boundary_conditions(self):
         self.bc_neumann = np.array([], dtype=np.bool)

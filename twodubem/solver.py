@@ -177,20 +177,19 @@ class Solver:
         self._get_tangential_derivative_on_boundary()
 
     def _get_tangential_derivative_on_boundary(self):
+        # Allowing the evaluation of the gradient on the boundary. By default, TwoDuBEM
+        # returns NaN gradients on the boundary because this option is set to False.
         self.green._eval_on_boundary = True
 
-        elements_nodes = np.empty((self.boundary.number_of_elements, 2))
-        elements_tangents = np.empty((self.boundary.number_of_elements, 2))
+        xm = self.boundary.midpoints[:, 0]
+        ym = self.boundary.midpoints[:, 1]
 
-        for i, element in enumerate(self.boundary.elements):
-            elements_nodes[i] = element.node
-            elements_tangents[i] = element.tangent
-
-        _, w = self.get_solution(elements_nodes[:, 0], elements_nodes[:, 1])
+        _, wm = self.get_solution(xm, ym)
 
         # Multiplying by 2.0, because the gradient w is evaluated on the boundary.
-        r = 2.0 * np.sum(w * elements_tangents, axis=1)
+        r = 2.0 * np.sum(wm * self.boundary.tangents, axis=1)
 
+        # Back to TwoDuBEM's default configuration.
         self.green._eval_on_boundary = False
 
         self.r = r  # Tangential derivative at the nodes.
