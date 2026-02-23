@@ -20,7 +20,7 @@ import numpy as np
 class Green:
 
     @staticmethod
-    def eval(field_point, source_point):
+    def eval(field_point, source_point, *args, **kwargs):
         """Green's function evaluation."""
 
         raise NotImplementedError
@@ -95,8 +95,8 @@ class Green:
                 np.array([-a * roots[i], 0.0])
             )
 
-            g_p, gradg_p, gradk_p = self.eval(element_point_p, point)
-            g_m, gradg_m, gradk_m = self.eval(element_point_m, point)
+            g_p, gradg_p, gradk_p = self.eval(element_point_p, point, *args, **kwargs)
+            g_m, gradg_m, gradk_m = self.eval(element_point_m, point, *args, **kwargs)
 
             G += weights[i] * (g_p + g_m)
             gradG += weights[i] * (gradg_p + gradg_m)
