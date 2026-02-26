@@ -23,6 +23,7 @@ classifiers = [
   'Programming Language :: Python :: 3.11',
   'Programming Language :: Python :: 3.12',
   'Programming Language :: Python :: 3.13',
+  'Programming Language :: Python :: 3.14',
   'Programming Language :: Python :: 3 :: Only',
   'Typing :: Typed',
   'Operating System :: OS Independent',
@@ -34,56 +35,3 @@ build-backend = "poetry.core.masonry.api"
 
 [project.urls]
 'Source' = 'https://github.com/rodpcastro/twodubem'
-# 'Documentation' = 'https://twodubem.readthedocs.io/'
-
-# [project.optional-dependencies]
-# tests = [
-#     'mypy>=1.0',
-#     'pytest>=6.2',
-#     'nbval>=0.11',
-#     'coverage>=7.0',
-#     'pytest-cov>=2.10',
-#     'black>=22.1.0',
-# ]
-# docs = [
-#     'sphinx>=7.2.6',
-#     'furo>=2024.1.29',
-#     'nbsphinx>=0.9.3',
-#     'numpydoc>=1.6.0',
-#     'IPython>=8.8.0',
-#     'sphinx-copybutton',
-# ]
-
-# [tool.mypy]
-# python_version = '3.12'
-# files = 'twodubem'
-# exclude = ['tests']
-# ignore_missing_imports = 'True'
-
-# [tool.pytest.ini_options]
-# minversion = '6.2'
-# testpaths = ['tests', 'docs/tutorials']
-# addopts = [
-#     '--nbval',
-#     '--cov=nodimo',
-#     '--cov-config=pyproject.toml',
-#     '--cov-report=term-missing',
-#     '--import-mode=importlib',
-# ]
-
-# [tool.coverage.run]
-# source = ['nodimo']
-# data_file = '.coverage/.coverage'
-# context = '${CONTEXT}'
-# relative_files = 'true'
-#
-# [tool.coverage.paths]
-# source = ['nodimo']
-#
-# [tool.coverage.html]
-# directory = '.coverage/htmlcov'
-
-# [tool.black]
-# target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
-# skip-string-normalization = 'True'
-# include = 'nodimo\/.*\.pyi?$'
