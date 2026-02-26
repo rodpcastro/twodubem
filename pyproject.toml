@@ -3,7 +3,7 @@ name = 'twodubem'
 version = '0.1.0'
 dependencies = ['numpy>=2.0']
 authors = [
-    {name = 'Rodrigo Castro', email = 'rodpcastro18@gmail.com'}
+    {name = 'Rodrigo Castro', email = 'code@rpc.aleeas.com'}
 ]
 description = "TwoDuBEM solves the 2D Laplace's equation using the Boundary Element Method."
 readme = 'README.md'
